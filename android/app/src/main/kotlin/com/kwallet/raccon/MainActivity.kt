@@ -38,7 +38,7 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "updateWidgetData" -> {
+                "updateWidgetData", "updatePetState" -> {
                     val args = call.arguments as? Map<*, *>
                     if (args != null) {
                         val prefs = getSharedPreferences(KwallPetWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
@@ -56,6 +56,18 @@ class MainActivity : FlutterActivity() {
                         (args["theme_palette"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_THEME_PALETTE, it) }
                         (args["widget_bg_mode"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_WIDGET_BG_MODE, it) }
                         (args["widget_bg_color"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_WIDGET_BG_COLOR, it.toInt()) }
+
+                        (args["pet_pose"] as? String)?.let {
+                            editor.putString(KwallPetWidgetProvider.KEY_PET_POSE, it)
+                            editor.putLong(KwallPetWidgetProvider.KEY_LAST_TAP_TIME, 0L)
+                        }
+                        (args["pet_mood"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_PET_MOOD, it) }
+                        (args["pet_facing_right"] as? Boolean)?.let { editor.putBoolean(KwallPetWidgetProvider.KEY_PET_FACING_RIGHT, it) }
+                        (args["pet_sprites"] as? Map<*, *>)?.forEach { (pose, sprite) ->
+                            if (pose is String && sprite is String && sprite.length <= 200000) {
+                                editor.putString("pet_sprite_$pose", sprite)
+                            }
+                        }
 
                         editor.apply()
                         KwallPetWidgetProvider.updateAllWidgets(applicationContext)

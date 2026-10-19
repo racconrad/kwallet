@@ -239,6 +239,25 @@ class HomeViewModel extends ViewModel {
     return awarded;
   }
 
+  String _petPose = 'idle';
+  String _petMood = 'normal';
+  bool _petFacingRight = true;
+  void syncPetState(String pose, String mood, bool facingRight) {
+    if (_petPose == pose &&
+        _petMood == mood &&
+        _petFacingRight == facingRight) {
+      return;
+    }
+    _petPose = pose;
+    _petMood = mood;
+    _petFacingRight = facingRight;
+    WidgetSyncService.syncPetState(
+      pose: pose,
+      mood: mood,
+      facingRight: facingRight,
+    );
+  }
+
   void _syncWidget() {
     final bgMode = _settings['widget_bg_mode'] ?? 'default';
     final bgColor = int.tryParse(_settings['widget_bg_color'] ?? '');
@@ -252,9 +271,13 @@ class HomeViewModel extends ViewModel {
       statusMessage: pendingHabitsCount > 0
           ? 'Tienes $pendingHabitsCount ${pendingHabitsCount == 1 ? "hábito pendiente" : "hábitos pendientes"} hoy.'
           : (totalHabitsToday > 0
-              ? 'Todos tus hábitos completados hoy.'
-              : 'Todo al día y organizado.'),
+                ? 'Todos tus hábitos completados hoy.'
+                : 'Todo al día y organizado.'),
       petStyle: _settings['pet_style'] ?? 'classic',
+      petSettings: _settings,
+      petPose: _petPose,
+      petMood: _petMood,
+      petFacingRight: _petFacingRight,
       themePalette: _settings['palette'] ?? 'forest',
       widgetBgMode: bgMode,
       widgetBgColor: bgColor,

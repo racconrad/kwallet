@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,11 +16,7 @@ class PetHeroCard extends StatefulWidget {
   final HomeViewModel controller;
   final ValueChanged<bool>? onHoldChanged;
 
-  const PetHeroCard({
-    super.key,
-    required this.controller,
-    this.onHoldChanged,
-  });
+  const PetHeroCard({super.key, required this.controller, this.onHoldChanged});
 
   @override
   State<PetHeroCard> createState() => _PetHeroCardState();
@@ -41,30 +38,40 @@ class _PetHeroCardState extends State<PetHeroCard>
   bool _isCelebrating = false;
   bool _isGrabbed = false;
   bool _isAnnoyed = false;
+  String? _lastWidgetState;
+  PetActivity? _spriteActivity;
   bool _earnedXpThisPet = false;
 
   // Particle animations
   late final AnimationController _particleAnim;
   late final AnimationController _annoyedAnim;
-  final List<({double x, double delay, double scale, Color color, IconData icon})> _particles = [];
-  final List<({double x, double delay, double scale, double rotation, Color color})> _annoyedParticles = [];
+  final List<
+    ({double x, double delay, double scale, Color color, IconData icon})
+  >
+  _particles = [];
+  final List<
+    ({double x, double delay, double scale, double rotation, Color color})
+  >
+  _annoyedParticles = [];
 
   @override
   void initState() {
     super.initState();
-    _particleAnim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _particleAnim =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 1400),
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
 
-    _annoyedAnim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1300),
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _annoyedAnim =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 1300),
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
 
     _scheduleNextRoam();
   }
@@ -134,7 +141,9 @@ class _PetHeroCardState extends State<PetHeroCard>
         timer.cancel();
         setState(() {
           _xPos = _targetX;
-          _currentActivity = random.nextBool() ? PetActivity.idle : PetActivity.curious;
+          _currentActivity = random.nextBool()
+              ? PetActivity.idle
+              : PetActivity.curious;
         });
         _scheduleNextRoam();
       } else {
@@ -277,17 +286,32 @@ class _PetHeroCardState extends State<PetHeroCard>
 
     final defaultActivity = isSleepingTime
         ? PetActivity.sleep
-        : (allHabitsDone
-            ? PetActivity.celebrate
-            : _currentActivity);
+        : (allHabitsDone ? PetActivity.celebrate : _currentActivity);
 
     final effectiveActivity = _isGrabbed
         ? PetActivity.grabbed
         : (_isCelebrating
-            ? PetActivity.celebrate
-            : (_isAnnoyed
-                ? PetActivity.curious
-                : defaultActivity));
+              ? PetActivity.celebrate
+              : (_isAnnoyed ? PetActivity.curious : defaultActivity));
+
+    final mood = _isAnnoyed
+        ? 'annoyed'
+        : _isCelebrating || allHabitsDone
+        ? 'happy'
+        : 'normal';
+    final widgetState = '${effectiveActivity.name}:$mood:$_movingRight';
+    if (_lastWidgetState != widgetState) {
+      _lastWidgetState = widgetState;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          controller.syncPetState(
+            (_spriteActivity ?? effectiveActivity).name,
+            mood,
+            _movingRight,
+          );
+        }
+      });
+    }
 
     // Dynamic shadow: shrinks and fades when lifted high towards the ceiling
     final liftRatio = ((_groundY - _yPos) / 1.5).clamp(0.0, 1.0);
@@ -303,7 +327,10 @@ class _PetHeroCardState extends State<PetHeroCard>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: KwallTheme.surfaceContainer.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
@@ -335,7 +362,10 @@ class _PetHeroCardState extends State<PetHeroCard>
 
               // Growth stage and level chip
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: KwallTheme.accentLight,
                   borderRadius: BorderRadius.circular(16),
@@ -468,7 +498,9 @@ class _PetHeroCardState extends State<PetHeroCard>
                           });
                         },
                         onPanEnd: (details) {
-                          final wasLifted = _yPos < 0.40 || details.velocity.pixelsPerSecond.distance > 80;
+                          final wasLifted =
+                              _yPos < 0.40 ||
+                              details.velocity.pixelsPerSecond.distance > 80;
                           _handlePetDropped(wasLifted);
                         },
                         onPanCancel: () {
@@ -490,9 +522,20 @@ class _PetHeroCardState extends State<PetHeroCard>
                                   settings: controller.settings,
                                   activity: effectiveActivity,
                                   onPet: _giveAffection,
+                                  onActivityChanged: (activity) {
+                                    _spriteActivity = activity;
+                                    controller.syncPetState(
+                                      activity.name,
+                                      _isAnnoyed
+                                          ? 'annoyed'
+                                          : _isCelebrating || allHabitsDone
+                                          ? 'happy'
+                                          : 'normal',
+                                      _movingRight,
+                                    );
+                                  },
                                 ),
                               ),
-
                             ],
                           ),
                         ),
@@ -514,9 +557,13 @@ class _PetHeroCardState extends State<PetHeroCard>
                               for (final p in _particles)
                                 Builder(
                                   builder: (context) {
-                                    final t = (_particleAnim.value - p.delay).clamp(0.0, 1.0);
-                                    if (t <= 0.0) return const SizedBox.shrink();
-                                    final yProgress = Curves.easeOutCubic.transform(t);
+                                    final t = (_particleAnim.value - p.delay)
+                                        .clamp(0.0, 1.0);
+                                    if (t <= 0.0) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final yProgress = Curves.easeOutCubic
+                                        .transform(t);
                                     final opacity = (1.0 - t).clamp(0.0, 1.0);
                                     return Positioned(
                                       bottom: yProgress * 65 + 30,
@@ -524,7 +571,8 @@ class _PetHeroCardState extends State<PetHeroCard>
                                       child: Opacity(
                                         opacity: opacity,
                                         child: Transform.scale(
-                                          scale: p.scale * (0.8 + 0.4 * yProgress),
+                                          scale:
+                                              p.scale * (0.8 + 0.4 * yProgress),
                                           child: Icon(
                                             p.icon,
                                             size: 17,
@@ -540,21 +588,34 @@ class _PetHeroCardState extends State<PetHeroCard>
                               if (_earnedXpThisPet)
                                 Builder(
                                   builder: (context) {
-                                    final t = _particleAnim.value.clamp(0.0, 1.0);
-                                    final yProgress = Curves.easeOutCubic.transform(t);
-                                    final opacity = (1.0 - t * 0.9).clamp(0.0, 1.0);
+                                    final t = _particleAnim.value.clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                    final yProgress = Curves.easeOutCubic
+                                        .transform(t);
+                                    final opacity = (1.0 - t * 0.9).clamp(
+                                      0.0,
+                                      1.0,
+                                    );
                                     return Positioned(
                                       top: 15 - (yProgress * 25),
                                       child: Opacity(
                                         opacity: opacity,
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: KwallTheme.accent,
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: KwallTheme.accent.withValues(alpha: 0.4),
+                                                color: KwallTheme.accent
+                                                    .withValues(alpha: 0.4),
                                                 blurRadius: 8,
                                                 spreadRadius: 1,
                                               ),
@@ -578,7 +639,8 @@ class _PetHeroCardState extends State<PetHeroCard>
                         ),
                       ),
                     // Annoyance cross particles
-                    if (_annoyedAnim.isAnimating && _annoyedParticles.isNotEmpty)
+                    if (_annoyedAnim.isAnimating &&
+                        _annoyedParticles.isNotEmpty)
                       AnimatedAlign(
                         duration: Duration.zero,
                         alignment: Alignment(_xPos, _yPos - 0.2),
@@ -592,9 +654,13 @@ class _PetHeroCardState extends State<PetHeroCard>
                               for (final p in _annoyedParticles)
                                 Builder(
                                   builder: (context) {
-                                    final t = (_annoyedAnim.value - p.delay).clamp(0.0, 1.0);
-                                    if (t <= 0.0) return const SizedBox.shrink();
-                                    final yProgress = Curves.easeOutCubic.transform(t);
+                                    final t = (_annoyedAnim.value - p.delay)
+                                        .clamp(0.0, 1.0);
+                                    if (t <= 0.0) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final yProgress = Curves.easeOutCubic
+                                        .transform(t);
                                     final opacity = (1.0 - t).clamp(0.0, 1.0);
                                     return Positioned(
                                       bottom: yProgress * 65 + 30,
@@ -604,7 +670,9 @@ class _PetHeroCardState extends State<PetHeroCard>
                                         child: Transform.rotate(
                                           angle: p.rotation,
                                           child: Transform.scale(
-                                            scale: p.scale * (0.8 + 0.4 * yProgress),
+                                            scale:
+                                                p.scale *
+                                                (0.8 + 0.4 * yProgress),
                                             child: Icon(
                                               Icons.close_rounded,
                                               size: 20,
@@ -651,10 +719,7 @@ class _PetHeroCardState extends State<PetHeroCard>
               ),
               Text(
                 '${100 - xpInCurrentLevel} XP para subir',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: KwallTheme.textSecondary,
-                ),
+                style: TextStyle(fontSize: 11, color: KwallTheme.textSecondary),
               ),
             ],
           ),

@@ -19,6 +19,7 @@ class KittyCompanionWidget extends StatefulWidget {
   final String name;
   final double size;
   final VoidCallback? onPet;
+  final ValueChanged<PetActivity>? onActivityChanged;
   final String? imagePath;
   final int reward;
   const KittyCompanionWidget({
@@ -28,6 +29,7 @@ class KittyCompanionWidget extends StatefulWidget {
     this.name = 'Mishi',
     this.size = 96,
     this.onPet,
+    this.onActivityChanged,
     this.imagePath,
     this.reward = 0,
   });
@@ -56,6 +58,7 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
   Uint8List? _customImage;
   Timer? _timer;
   PetActivity? _reaction;
+  PetActivity? _reportedActivity;
   int _frame = 0;
   int _pets = 0;
   bool _foreground = true;
@@ -201,6 +204,13 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
 
   @override
   Widget build(BuildContext context) {
+    if (_reportedActivity != _activity) {
+      _reportedActivity = _activity;
+      final activity = _activity;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onActivityChanged?.call(activity);
+      });
+    }
     final image = _customImage != null
         ? Image.memory(
             _customImage!,

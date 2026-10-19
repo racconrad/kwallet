@@ -7,6 +7,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import android.graphics.Matrix
+import android.util.Base64
 import android.os.Build
 import android.view.View
 import android.widget.RemoteViews
@@ -46,6 +50,9 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
         const val KEY_WIDGET_BG_MODE = "widget_bg_mode"
         const val KEY_WIDGET_BG_COLOR = "widget_bg_color"
         const val KEY_PET_POSE = "pet_pose"
+        const val KEY_PET_FACING_RIGHT = "pet_facing_right"
+        const val KEY_TAP_POSE = "tap_pose"
+        const val KEY_TAP_MOOD = "tap_mood"
         const val KEY_PET_MOOD = "pet_mood"
         const val KEY_LAST_TAP_TIME = "last_tap_time"
         const val KEY_TAP_COUNT = "tap_count"
@@ -64,20 +71,20 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
 
             if (newCount >= 4) {
                 // Rapid taps trigger annoyance reaction with pixel-art red 'X'
-                editor.putString(KEY_PET_MOOD, "annoyed")
-                editor.putString(KEY_PET_POSE, "idle")
+                editor.putString(KEY_TAP_MOOD, "annoyed")
+                editor.putString(KEY_TAP_POSE, "idle")
                 editor.putInt(KEY_TAP_COUNT, 0)
             } else {
                 // Interactive cycle: idle -> celebrate -> play -> walk
-                val currentPose = prefs.getString(KEY_PET_POSE, "idle") ?: "idle"
+                val currentPose = prefs.getString(KEY_TAP_POSE, "idle") ?: "idle"
                 val nextPose = when (currentPose) {
                     "idle" -> "celebrate"
-                    "celebrate" -> "play"
-                    "play" -> "walk"
+                    "celebrate" -> "curious"
+                    "curious" -> "walk"
                     else -> "idle"
                 }
-                editor.putString(KEY_PET_MOOD, "happy")
-                editor.putString(KEY_PET_POSE, nextPose)
+                editor.putString(KEY_TAP_MOOD, "happy")
+                editor.putString(KEY_TAP_POSE, nextPose)
             }
             editor.apply()
             updateAllWidgets(context)
@@ -106,10 +113,9 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
             val lastTap = prefs.getLong(KEY_LAST_TAP_TIME, 0L)
             val isRecentTap = (now - lastTap) <= 6000L
 
-            val (timeOfDayPose, timeOfDayMood, timeOfDayStatus) = resolveDaytimeState(totalHabits, pendingHabits)
-            val effectiveMood = if (isRecentTap) storedMood else timeOfDayMood
-            val effectivePose = if (isRecentTap) storedPose else timeOfDayPose
-            val effectiveStatus = if (isRecentTap) "kwall" else timeOfDayStatus
+            val effectiveMood = if (isRecentTap) prefs.getString(KEY_TAP_MOOD, storedMood) ?: storedMood else storedMood
+            val effectivePose = if (isRecentTap) prefs.getString(KEY_TAP_POSE, storedPose) ?: storedPose else storedPose
+            val effectiveStatus = prefs.getString(KEY_STATUS_MESSAGE, "kwall") ?: "kwall"
 
             val views = RemoteViews(context.packageName, R.layout.kwall_pet_widget)
 
@@ -141,9 +147,24 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
                 }
             }
 
-            // Resolve cat avatar sprite dynamically
-            val catDrawable = getCatDrawableRes(context, petStyle, effectivePose)
-            views.setImageViewResource(R.id.widget_cat_avatar, catDrawable)
+            // Flutter supplies the current species, growth stage and coat from its atlas.
+            val encodedSprite = prefs.getString("pet_sprite_$effectivePose", null)
+                ?: prefs.getString("pet_sprite_idle", null)
+            val bitmap = try {
+                encodedSprite?.let {
+                    val bytes = Base64.decode(it, Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                }
+            } catch (_: IllegalArgumentException) { null }
+            if (bitmap != null) {
+                val displayed = if (prefs.getBoolean(KEY_PET_FACING_RIGHT, true)) bitmap else {
+                    val matrix = Matrix().apply { preScale(-1f, 1f) }
+                    Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, false)
+                }
+                views.setImageViewBitmap(R.id.widget_cat_avatar, displayed)
+            } else {
+                views.setImageViewResource(R.id.widget_cat_avatar, getCatDrawableRes(context, petStyle, effectivePose))
+            }
 
             // Mood indicators (Pixel Art Red 'X' for annoyed, Heart for happy)
             when {
@@ -213,27 +234,6 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_bottom_bar, pendingLaunch)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
-        }
-
-        private fun resolveDaytimeState(totalHabits: Int, pendingHabits: Int): Triple<String, String, String> {
-            val cal = java.util.Calendar.getInstance()
-            val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
-            val allHabitsDone = totalHabits > 0 && pendingHabits == 0
-
-            return when {
-                // Noche (22:00 - 06:59): Durmiendo plácidamente
-                hour >= 22 || hour < 7 -> Triple("sleep", "normal", "zZz kwall")
-                // Siesta de la tarde (14:00 - 15:59): Siesta del gato
-                hour in 14..15 -> Triple("sleep", "normal", "zZz siesta")
-                // Todos los hábitos completos: Celebrando y feliz
-                allHabitsDone -> Triple("celebrate", "happy", "kwall · ¡listo!")
-                // Mañana activa (07:00 - 11:59): Jugando
-                hour in 7..11 -> Triple("play", "happy", "kwall · jugando")
-                // Tarde activa (16:00 - 19:59): Jugando
-                hour in 16..19 -> Triple("play", "happy", "kwall · jugando")
-                // Mediodía (12:00 - 13:59) y Noche relajada (20:00 - 21:59): Feliz y relajado
-                else -> Triple("walk", "happy", "kwall · feliz")
-            }
         }
 
         private fun getCatDrawableRes(context: Context, style: String, pose: String): Int {
