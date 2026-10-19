@@ -1,3 +1,5 @@
+import '../../../../core/models/currency_conversion.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/kwall_theme.dart';
@@ -6,7 +8,8 @@ class CurrencyRateDialog extends StatefulWidget {
   final String currency;
   final String dominantCurrency;
   final double currentRate;
-  final Future<List<Map<String, dynamic>>> Function(String currency) onFetchHistory;
+  final Future<List<Map<String, dynamic>>> Function(String currency)
+  onFetchHistory;
   final Future<void> Function(double newRate, String notes) onSave;
 
   const CurrencyRateDialog({
@@ -56,38 +59,51 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
   }
 
   Future<void> _submit() async {
-    final val = double.tryParse(_rateController.text.trim().replaceAll(',', '.'));
+    final val = double.tryParse(
+      _rateController.text.trim().replaceAll(',', '.'),
+    );
     if (val == null || !val.isFinite || val <= 0) return;
     setState(() => _saving = true);
     try {
       await widget.onSave(val, _notesController.text.trim());
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
-      if (mounted) setState(() { _saving = false; _error = 'No se guardó la tasa. Reintenta.'; });
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = 'No se guardó la tasa. Reintenta.';
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Tasa: 1 ${widget.currency}'),
+      title: Text('Tasa: 1 ${CurrencyConversion.symbol(widget.currency)}'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            if (_error != null)
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             Text(
-              '1 ${widget.currency} =',
+              '1 ${CurrencyConversion.symbol(widget.currency)} =',
               style: TextStyle(fontSize: 13, color: KwallTheme.textSecondary),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _rateController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 labelText: 'Tasa de conversión',
-                suffixText: widget.dominantCurrency,
+                suffixText: CurrencyConversion.symbol(widget.dominantCurrency),
                 isDense: true,
               ),
             ),
@@ -124,21 +140,31 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
               else if (_history!.isEmpty)
                 Text(
                   'Sin cambios registrados aún.',
-                  style: TextStyle(fontSize: 12, color: KwallTheme.textSecondary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: KwallTheme.textSecondary,
+                  ),
                 )
               else
                 ..._history!.map((entry) {
-                  final base = entry['base_currency'] as String? ?? widget.dominantCurrency;
+                  final base =
+                      entry['base_currency'] as String? ??
+                      widget.dominantCurrency;
                   final prev = (entry['previous_rate'] as num?)?.toDouble();
                   final next = (entry['new_rate'] as num?)?.toDouble() ?? 1.0;
-                  final date = (entry['created_at'] as String? ?? '').replaceAll('T', ' ').split('.').first;
+                  final date = (entry['created_at'] as String? ?? '')
+                      .replaceAll('T', ' ')
+                      .split('.')
+                      .first;
                   final notes = entry['notes'] as String? ?? '';
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: KwallTheme.surfaceContainer.withValues(alpha: 0.5),
+                        color: KwallTheme.surfaceContainer.withValues(
+                          alpha: 0.5,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -148,11 +174,20 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
                             prev == null
                                 ? '1 = $next $base'
                                 : '$prev → $next $base',
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
                           ),
                           if (notes.isNotEmpty)
                             Text(notes, style: const TextStyle(fontSize: 11)),
-                          Text(date, style: TextStyle(fontSize: 10, color: KwallTheme.textSecondary)),
+                          Text(
+                            date,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: KwallTheme.textSecondary,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -169,7 +204,13 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
         ),
         FilledButton(
           onPressed: _saving ? null : _submit,
-          child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Guardar'),
+          child: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Guardar'),
         ),
       ],
     );

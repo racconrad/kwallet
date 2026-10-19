@@ -1,3 +1,5 @@
+import '../../../core/models/currency_conversion.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -173,12 +175,12 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'Monto previsto',
-              prefixText: '${widget.currency} ',
+              prefixText: '${CurrencyConversion.symbol(widget.currency)} ',
             ),
           ),
           SizedBox(height: 12),
           DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
+            icon: const Icon(Icons.expand_more_rounded),
             initialValue: _category,
             isExpanded: true,
             decoration: InputDecoration(labelText: 'Categoría'),
@@ -193,7 +195,7 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
           ),
           SizedBox(height: 12),
           DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
+            icon: const Icon(Icons.expand_more_rounded),
             initialValue: _account,
             isExpanded: true,
             decoration: InputDecoration(
@@ -220,7 +222,7 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
         ),
         SizedBox(height: 12),
         DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
+          icon: const Icon(Icons.expand_more_rounded),
           initialValue: _recurrence,
           decoration: InputDecoration(labelText: 'Repetir'),
           items: [

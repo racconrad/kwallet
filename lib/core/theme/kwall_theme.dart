@@ -1,3 +1,5 @@
+import '../models/currency_conversion.dart';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -199,6 +201,6 @@ class KwallTheme {
   }
 
   static String formatCurrency(double amount, [String currency = '\$']) {
-    return '${amount < 0 ? '-' : ''}$currency${NumberFormat('#,##0.00', 'en_US').format(amount.abs())}';
+    return '${amount < 0 ? '-' : ''}${CurrencyConversion.symbol(currency)}${NumberFormat('#,##0.00', 'en_US').format(amount.abs())}';
   }
 }

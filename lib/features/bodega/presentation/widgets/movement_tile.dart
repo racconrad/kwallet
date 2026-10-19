@@ -52,14 +52,14 @@ class MovementTile extends StatelessWidget {
         children: [
           Flexible(
             child: Text(
-              '${tx.isExpense
+              '${tx.isNegative
                   ? '-'
-                  : tx.isIncome
+                  : tx.isPositive
                   ? '+'
                   : ''}${KwallTheme.formatCurrency(tx.amount, tx.currency ?? currency)}',
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: tx.isExpense
+                color: tx.isNegative
                     ? KwallTheme.expenseRed
                     : KwallTheme.incomeGreen,
                 fontWeight: FontWeight.w700,

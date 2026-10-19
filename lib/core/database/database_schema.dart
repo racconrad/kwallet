@@ -75,6 +75,8 @@ class DatabaseSchema {
     await _createV4Tables(db);
     await migrateV5(db);
     await migrateV6(db);
+    await migrateV7(db);
+    await migrateV8(db);
 
     final now = DateTime.now();
 
@@ -280,12 +282,16 @@ class DatabaseSchema {
     DatabaseExecutor db, {
     String? accountId,
   }) async {
-    final columns = (await db.rawQuery('PRAGMA table_info(transactions)')).map((row) => row['name']).toSet();
-    final received = columns.contains('to_amount') ? 'COALESCE(t.to_amount,t.amount)' : 't.amount';
+    final columns = (await db.rawQuery('PRAGMA table_info(transactions)'))
+        .map((row) => row['name'])
+        .toSet();
+    final received = columns.contains('to_amount')
+        ? 'COALESCE(t.to_amount,t.amount)'
+        : 't.amount';
     await db.rawUpdate(
       """UPDATE accounts SET opening_balance = balance - COALESCE((
-      SELECT SUM(CASE WHEN t.account_id = accounts.id AND t.type = 'income' THEN t.amount
-        WHEN t.account_id = accounts.id AND t.type IN ('expense','transfer') THEN -t.amount ELSE 0 END
+      SELECT SUM(CASE WHEN t.account_id = accounts.id AND t.type IN ('income','adjustment_in') THEN t.amount
+        WHEN t.account_id = accounts.id AND t.type IN ('expense','transfer','adjustment_out') THEN -t.amount ELSE 0 END
         + CASE WHEN t.to_account_id = accounts.id AND t.type = 'transfer' THEN $received ELSE 0 END)
       FROM transactions t WHERE t.account_id = accounts.id OR t.to_account_id = accounts.id),0)
       ${accountId == null ? '' : 'WHERE id = ?'}""",
@@ -378,6 +384,8 @@ class DatabaseSchema {
     }
     if (oldVersion < 5) await migrateV5(db);
     if (oldVersion < 6) await migrateV6(db);
+    if (oldVersion < 7) await migrateV7(db);
+    if (oldVersion < 8) await migrateV8(db);
     await db.insert('app_settings', {
       'key': 'db_version',
       'value': '$newVersion',
@@ -388,24 +396,51 @@ class DatabaseSchema {
   static Future<void> migrateV5(DatabaseExecutor db) async {
     await _migrateLegacyColumns(db);
     for (final table in ['transactions', 'transaction_archive']) {
-      final columns = (await db.rawQuery('PRAGMA table_info($table)')).map((r) => r['name']).toSet();
-      for (final entry in {'currency': 'TEXT', 'to_currency': 'TEXT', 'to_amount': 'REAL', 'exchange_rate': 'REAL'}.entries) {
-        if (!columns.contains(entry.key)) await db.execute('ALTER TABLE $table ADD COLUMN ${entry.key} ${entry.value}');
+      final columns = (await db.rawQuery('PRAGMA table_info($table)'))
+          .map((r) => r['name'])
+          .toSet();
+      for (final entry in {
+        'currency': 'TEXT',
+        'to_currency': 'TEXT',
+        'to_amount': 'REAL',
+        'exchange_rate': 'REAL',
+      }.entries) {
+        if (!columns.contains(entry.key)) {
+          await db.execute(
+            'ALTER TABLE $table ADD COLUMN ${entry.key} ${entry.value}',
+          );
+        }
       }
-      await db.execute("UPDATE $table SET currency = (SELECT currency FROM accounts WHERE id = account_id) WHERE currency IS NULL");
-      await db.execute("UPDATE $table SET to_amount = amount, exchange_rate = 1, to_currency = (SELECT currency FROM accounts WHERE id = to_account_id) WHERE type = 'transfer' AND to_amount IS NULL");
+      await db.execute(
+        "UPDATE $table SET currency = (SELECT currency FROM accounts WHERE id = account_id) WHERE currency IS NULL",
+      );
+      await db.execute(
+        "UPDATE $table SET to_amount = amount, exchange_rate = 1, to_currency = (SELECT currency FROM accounts WHERE id = to_account_id) WHERE type = 'transfer' AND to_amount IS NULL",
+      );
       for (final operation in ['INSERT', 'UPDATE']) {
-        await db.execute("CREATE TRIGGER IF NOT EXISTS validate_${table}_${operation.toLowerCase()} BEFORE $operation ON $table WHEN NEW.amount <= 0 OR NEW.type NOT IN ('income','expense','transfer') OR (NEW.type = 'transfer' AND (NEW.to_account_id IS NULL OR NEW.to_account_id = NEW.account_id OR NEW.to_amount IS NULL OR NEW.to_amount <= 0 OR NEW.exchange_rate IS NULL OR NEW.exchange_rate <= 0 OR NOT EXISTS (SELECT 1 FROM accounts WHERE id = NEW.to_account_id))) BEGIN SELECT RAISE(ABORT, 'Invalid movement'); END");
+        await db.execute(
+          "CREATE TRIGGER IF NOT EXISTS validate_${table}_${operation.toLowerCase()} BEFORE $operation ON $table WHEN NEW.amount <= 0 OR NEW.type NOT IN ('income','expense','transfer') OR (NEW.type = 'transfer' AND (NEW.to_account_id IS NULL OR NEW.to_account_id = NEW.account_id OR NEW.to_amount IS NULL OR NEW.to_amount <= 0 OR NEW.exchange_rate IS NULL OR NEW.exchange_rate <= 0 OR NOT EXISTS (SELECT 1 FROM accounts WHERE id = NEW.to_account_id))) BEGIN SELECT RAISE(ABORT, 'Invalid movement'); END",
+        );
       }
     }
-    final historyColumns = (await db.rawQuery('PRAGMA table_info(global_currency_history)')).map((r) => r['name']).toSet();
+    final historyColumns = (await db.rawQuery(
+      'PRAGMA table_info(global_currency_history)',
+    )).map((r) => r['name']).toSet();
     if (!historyColumns.contains('base_currency')) {
-      await db.execute('ALTER TABLE global_currency_history ADD COLUMN base_currency TEXT');
-      await db.execute("UPDATE global_currency_history SET base_currency = COALESCE((SELECT value FROM app_settings WHERE key = 'currency'),'\$')");
+      await db.execute(
+        'ALTER TABLE global_currency_history ADD COLUMN base_currency TEXT',
+      );
+      await db.execute(
+        "UPDATE global_currency_history SET base_currency = COALESCE((SELECT value FROM app_settings WHERE key = 'currency'),'\$')",
+      );
     }
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_acc_curr_hist ON account_currency_history(account_id, created_at DESC)');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_acc_curr_hist ON account_currency_history(account_id, created_at DESC)',
+    );
     for (final operation in ['INSERT', 'UPDATE']) {
-      await db.execute("CREATE TRIGGER IF NOT EXISTS validate_rate_${operation.toLowerCase()} BEFORE $operation ON global_currency_rates WHEN NEW.rate <= 0 BEGIN SELECT RAISE(ABORT, 'Invalid exchange rate'); END");
+      await db.execute(
+        "CREATE TRIGGER IF NOT EXISTS validate_rate_${operation.toLowerCase()} BEFORE $operation ON global_currency_rates WHEN NEW.rate <= 0 BEGIN SELECT RAISE(ABORT, 'Invalid exchange rate'); END",
+      );
     }
   }
 
@@ -516,7 +551,8 @@ class DatabaseSchema {
           'period': 'monthly',
           'period_start': start,
           'amount': monthlyLimit,
-          'updated_at': b['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+          'updated_at':
+              b['created_at']?.toString() ?? DateTime.now().toIso8601String(),
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
       await db.execute('DROP TABLE IF EXISTS budgets');
@@ -526,7 +562,9 @@ class DatabaseSchema {
       await db.execute('DROP TABLE IF EXISTS kitty_profile');
     }
 
-    final planCols = (await db.rawQuery("PRAGMA table_info(planned_expenses)")).map((r) => r['name']).toSet();
+    final planCols = (await db.rawQuery("PRAGMA table_info(planned_expenses)"))
+        .map((r) => r['name'])
+        .toSet();
     if (!planCols.contains('icon_key')) {
       await db.execute('ALTER TABLE planned_expenses ADD COLUMN icon_key TEXT');
     }
@@ -547,13 +585,45 @@ class DatabaseSchema {
     if (qeRows.isEmpty) {
       final nowStr = DateTime.now().toIso8601String();
       final defaults = [
-        {'id': 'qe_coffee', 'title': 'Café', 'amount': 2.0, 'category_id': 'cat_leisure', 'icon_key': 'food', 'created_at': nowStr},
-        {'id': 'qe_transport', 'title': 'Bus / Metro', 'amount': 1.5, 'category_id': 'cat_transport', 'icon_key': 'transport', 'created_at': nowStr},
-        {'id': 'qe_snack', 'title': 'Snack', 'amount': 3.0, 'category_id': 'cat_food', 'icon_key': 'food', 'created_at': nowStr},
-        {'id': 'qe_water', 'title': 'Agua', 'amount': 1.0, 'category_id': 'cat_food', 'icon_key': 'potion', 'created_at': nowStr},
+        {
+          'id': 'qe_coffee',
+          'title': 'Café',
+          'amount': 2.0,
+          'category_id': 'cat_leisure',
+          'icon_key': 'food',
+          'created_at': nowStr,
+        },
+        {
+          'id': 'qe_transport',
+          'title': 'Bus / Metro',
+          'amount': 1.5,
+          'category_id': 'cat_transport',
+          'icon_key': 'transport',
+          'created_at': nowStr,
+        },
+        {
+          'id': 'qe_snack',
+          'title': 'Snack',
+          'amount': 3.0,
+          'category_id': 'cat_food',
+          'icon_key': 'food',
+          'created_at': nowStr,
+        },
+        {
+          'id': 'qe_water',
+          'title': 'Agua',
+          'amount': 1.0,
+          'category_id': 'cat_food',
+          'icon_key': 'potion',
+          'created_at': nowStr,
+        },
       ];
       for (final qe in defaults) {
-        await db.insert('quick_expenses', qe, conflictAlgorithm: ConflictAlgorithm.ignore);
+        await db.insert(
+          'quick_expenses',
+          qe,
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
       }
     }
 
@@ -568,8 +638,12 @@ class DatabaseSchema {
     final ucRows = await db.query('user_currencies', limit: 1);
     if (ucRows.isEmpty) {
       final nowStr = DateTime.now().toIso8601String();
-      final mainCurRows = await db.query('app_settings', where: "key = 'currency'");
-      final mainCur = (mainCurRows.firstOrNull?['value'] as String?)?.trim() ?? '\$';
+      final mainCurRows = await db.query(
+        'app_settings',
+        where: "key = 'currency'",
+      );
+      final mainCur =
+          (mainCurRows.firstOrNull?['value'] as String?)?.trim() ?? '\$';
       await db.insert('user_currencies', {
         'code': mainCur.isEmpty ? '\$' : mainCur,
         'name': '',
@@ -598,6 +672,42 @@ class DatabaseSchema {
             'created_at': nowStr,
           }, conflictAlgorithm: ConflictAlgorithm.ignore);
         }
+      }
+    }
+  }
+
+  static Future<void> migrateV8(DatabaseExecutor db) async {
+    final columns = (await db.rawQuery('PRAGMA table_info(accounts)'))
+        .map((r) => r['name'])
+        .toSet();
+    if (!columns.contains('exclude_from_available')) {
+      await db.execute(
+        'ALTER TABLE accounts ADD COLUMN exclude_from_available INTEGER NOT NULL DEFAULT 0 CHECK(exclude_from_available IN (0,1))',
+      );
+    }
+  }
+
+  static Future<void> migrateV7(DatabaseExecutor db) async {
+    final columns = (await db.rawQuery('PRAGMA table_info(accounts)'))
+        .map((r) => r['name'])
+        .toSet();
+    if (!columns.contains('savings_target')) {
+      await db.execute(
+        'ALTER TABLE accounts ADD COLUMN savings_target REAL NOT NULL DEFAULT 0 CHECK(savings_target >= 0)',
+      );
+    }
+    if (!columns.contains('is_deleted')) {
+      await db.execute(
+        'ALTER TABLE accounts ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0 CHECK(is_deleted IN (0,1))',
+      );
+    }
+    for (final table in ['transactions', 'transaction_archive']) {
+      for (final operation in ['INSERT', 'UPDATE']) {
+        final name = 'validate_${table}_${operation.toLowerCase()}';
+        await db.execute('DROP TRIGGER IF EXISTS $name');
+        await db.execute(
+          "CREATE TRIGGER $name BEFORE $operation ON $table WHEN NEW.amount <= 0 OR NEW.type NOT IN ('income','expense','transfer','adjustment_in','adjustment_out') OR (NEW.type = 'transfer' AND (NEW.to_account_id IS NULL OR NEW.to_account_id = NEW.account_id OR NEW.to_amount IS NULL OR NEW.to_amount <= 0 OR NEW.exchange_rate IS NULL OR NEW.exchange_rate <= 0 OR NOT EXISTS (SELECT 1 FROM accounts WHERE id = NEW.to_account_id))) BEGIN SELECT RAISE(ABORT, 'Invalid movement'); END",
+        );
       }
     }
   }

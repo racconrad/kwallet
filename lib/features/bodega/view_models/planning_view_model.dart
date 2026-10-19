@@ -14,6 +14,7 @@ class PlanningViewModel extends ViewModel {
   final JournalRepository? journal;
   List<PlannedExpense> plans = const [];
   List<Account> accounts = const [];
+  Map<String, String> _accountCurrencies = const {};
   List<CategoryModel> categories = const [];
   List<PersonalNote> notes = const [];
   DateTime month = DateTime(DateTime.now().year, DateTime.now().month);
@@ -35,10 +36,26 @@ class PlanningViewModel extends ViewModel {
     }
   }
 
-  double _convert(double amount, String from) => CurrencyConversion.convert(amount, from: from, to: currency, rates: rates, dominantCurrency: currency);
-  double get balance => accounts.fold(0, (sum, a) => sum + _convert(a.balance, a.currency));
+  double _convert(double amount, String from) => CurrencyConversion.convert(
+    amount,
+    from: from,
+    to: currency,
+    rates: rates,
+    dominantCurrency: currency,
+  );
+  double get balance =>
+      accounts.fold(0, (sum, a) => sum + _convert(a.balance, a.currency));
   double get committed => plannedTotal(
-    plans.map((p) => p.copyWith(amount: _convert(p.amount, accounts.where((a) => a.id == p.accountId).firstOrNull?.currency ?? currency))).toList(),
+    plans
+        .map(
+          (p) => p.copyWith(
+            amount: _convert(
+              p.amount,
+              _accountCurrencies[p.accountId] ?? currency,
+            ),
+          ),
+        )
+        .toList(),
     dateOnly(DateTime.now()),
     DateTime.now().add(const Duration(days: 30)),
     includeOverdue: true,
@@ -58,17 +75,23 @@ class PlanningViewModel extends ViewModel {
         (plan: plan, date: date),
   ]..sort((a, b) => a.date.compareTo(b.date));
 
-  List<({PersonalNote note, int itemIndex, NoteItem item})> get dueNoteItems => [
-    for (final note in notes)
-      for (var i = 0; i < note.items.length; i++)
-        if (note.items[i].dueDate != null &&
-            !dateOnly(note.items[i].dueDate!).isBefore(range.start) &&
-            !dateOnly(note.items[i].dueDate!).isAfter(range.end))
-          (note: note, itemIndex: i, item: note.items[i]),
-  ];
+  List<({PersonalNote note, int itemIndex, NoteItem item})> get dueNoteItems =>
+      [
+        for (final note in notes)
+          for (var i = 0; i < note.items.length; i++)
+            if (note.items[i].dueDate != null &&
+                !dateOnly(note.items[i].dueDate!).isBefore(range.start) &&
+                !dateOnly(note.items[i].dueDate!).isAfter(range.end))
+              (note: note, itemIndex: i, item: note.items[i]),
+      ];
 
-  Map<String, ({double balance, double scheduled, List<Account> shortAccounts})> get cashflowForecast {
-    final currencyMap = <String, ({double balance, double scheduled, List<Account> shortAccounts})>{};
+  Map<String, ({double balance, double scheduled, List<Account> shortAccounts})>
+  get cashflowForecast {
+    final currencyMap =
+        <
+          String,
+          ({double balance, double scheduled, List<Account> shortAccounts})
+        >{};
     final accountScheduled = <String, double>{};
     for (final entry in entries) {
       if (entry.plan.accountId != null) {
@@ -77,13 +100,19 @@ class PlanningViewModel extends ViewModel {
       }
     }
 
-    final fallbackCurrency = accounts.isNotEmpty ? accounts.first.currency : '\$';
+    final fallbackCurrency = accounts.isNotEmpty
+        ? accounts.first.currency
+        : '\$';
     for (final account in accounts) {
-      final cur = account.currency.trim().isEmpty ? fallbackCurrency : account.currency.trim();
+      final cur = account.currency.trim().isEmpty
+          ? fallbackCurrency
+          : account.currency.trim();
       final sched = accountScheduled[account.id] ?? 0.0;
       final current = currencyMap[cur];
       final isShort = sched > account.balance;
-      final shortList = current?.shortAccounts != null ? List<Account>.from(current!.shortAccounts) : <Account>[];
+      final shortList = current?.shortAccounts != null
+          ? List<Account>.from(current!.shortAccounts)
+          : <Account>[];
       if (isShort && !shortList.any((a) => a.id == account.id)) {
         shortList.add(account);
       }
@@ -110,20 +139,37 @@ class PlanningViewModel extends ViewModel {
     final request = beginRequest();
     try {
       final nextPlans = await repository.getPlannedExpenses();
-      final nextAccounts = await repository.getAccounts();
+      final historicalAccounts = await repository.getAccounts(
+        includeArchived: true,
+        includeDeleted: true,
+      );
+      final nextAccounts = historicalAccounts
+          .where((a) => !a.isArchived && !a.isDeleted)
+          .toList();
       final nextCategories = await repository.getCategories(type: 'expense');
-      final nextNotes = journal != null ? await journal!.getNotes() : const <PersonalNote>[];
+      final nextNotes = journal != null
+          ? await journal!.getNotes()
+          : const <PersonalNote>[];
       final nextPayments = await repository.getPlannedExpensePayments();
       final settings = await preferences.getSettings();
       final nextRates = await preferences.getCurrencyRates();
       for (final account in nextAccounts) {
-        CurrencyConversion.convert(account.balance, from: account.currency, to: settings['currency'] ?? '\$', rates: nextRates, dominantCurrency: settings['currency'] ?? '\$');
+        CurrencyConversion.convert(
+          account.balance,
+          from: account.currency,
+          to: settings['currency'] ?? '\$',
+          rates: nextRates,
+          dominantCurrency: settings['currency'] ?? '\$',
+        );
       }
       if (!isCurrent(request)) return;
       currency = settings['currency'] ?? '\$';
       rates = Map.unmodifiable(nextRates);
       plans = List.unmodifiable(nextPlans);
       paymentHistory = List.unmodifiable(nextPayments);
+      _accountCurrencies = Map.unmodifiable({
+        for (final a in historicalAccounts) a.id: a.currency,
+      });
       accounts = List.unmodifiable(nextAccounts);
       categories = List.unmodifiable(nextCategories);
       notes = List.unmodifiable(nextNotes);
@@ -131,7 +177,10 @@ class PlanningViewModel extends ViewModel {
       error = null;
       final start = DateTime.tryParse(settings['plan_range_start'] ?? '');
       final end = DateTime.tryParse(settings['plan_range_end'] ?? '');
-      if (restoreRange && start != null && end != null && !end.isBefore(start)) {
+      if (restoreRange &&
+          start != null &&
+          end != null &&
+          !end.isBefore(start)) {
         range = DateSpan(dateOnly(start), dateOnly(end));
         rangeMode = dateOnly(start) != dateOnly(end);
         month = DateTime(start.year, start.month);

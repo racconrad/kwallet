@@ -51,32 +51,52 @@ mixin LedgerRepository on DatabaseContext {
     final db = await database;
     final query = filter.sql();
     final table = filter.archived ? 'transaction_archive' : 'transactions';
-    final rows = await db.rawQuery("SELECT type, COALESCE(currency,(SELECT currency FROM accounts WHERE accounts.id = $table.account_id),'\$') AS unit, COUNT(*) AS count, SUM(amount) AS amount FROM $table WHERE ${query.where} GROUP BY type,unit", query.args);
+    final rows = await db.rawQuery(
+      "SELECT type, COALESCE(currency,(SELECT currency FROM accounts WHERE accounts.id = $table.account_id),'\$') AS unit, COUNT(*) AS count, SUM(amount) AS amount FROM $table WHERE ${query.where} GROUP BY type,unit",
+      query.args,
+    );
     final snapshot = await CurrencySnapshot.read(db);
-    var count = 0; double income = 0, expense = 0;
+    var count = 0;
+    double income = 0, expense = 0;
     for (final row in rows) {
       count += row['count'] as int;
-      if (row['type'] == 'transfer') continue;
-      final amount = snapshot.convert((row['amount'] as num).toDouble(), row['unit'] as String);
+      if (!['income', 'expense'].contains(row['type'])) continue;
+      final amount = snapshot.convert(
+        (row['amount'] as num).toDouble(),
+        row['unit'] as String,
+      );
       if (row['type'] == 'income') income += amount;
       if (row['type'] == 'expense') expense += amount;
     }
     return (count: count, income: income, expense: expense);
   }
 
-  Future<List<MonthlyMovementSummary>> getMonthlyHistory(TransactionFilter filter) async {
+  Future<List<MonthlyMovementSummary>> getMonthlyHistory(
+    TransactionFilter filter,
+  ) async {
     final db = await database;
     final query = filter.sql();
     final table = filter.archived ? 'transaction_archive' : 'transactions';
-    final rows = await db.rawQuery("SELECT substr(date,1,7) AS month, type, COALESCE(currency,(SELECT currency FROM accounts WHERE accounts.id = $table.account_id),'\$') AS unit, SUM(amount) AS amount FROM $table WHERE ${query.where} GROUP BY month,type,unit ORDER BY month DESC", query.args);
+    final rows = await db.rawQuery(
+      "SELECT substr(date,1,7) AS month, type, COALESCE(currency,(SELECT currency FROM accounts WHERE accounts.id = $table.account_id),'\$') AS unit, SUM(amount) AS amount FROM $table WHERE ${query.where} GROUP BY month,type,unit ORDER BY month DESC",
+      query.args,
+    );
     final snapshot = await CurrencySnapshot.read(db);
     final months = <String, Map<String, Object?>>{};
     for (final row in rows) {
       final month = row['month'] as String;
-      final values = months.putIfAbsent(month, () => {'month': month, 'income': 0.0, 'expense': 0.0});
+      final values = months.putIfAbsent(
+        month,
+        () => {'month': month, 'income': 0.0, 'expense': 0.0},
+      );
       final type = row['type'] as String;
-      if (type == 'transfer') continue;
-      values[type] = (values[type] as double) + snapshot.convert((row['amount'] as num).toDouble(), row['unit'] as String);
+      if (!['income', 'expense'].contains(type)) continue;
+      values[type] =
+          (values[type] as double) +
+          snapshot.convert(
+            (row['amount'] as num).toDouble(),
+            row['unit'] as String,
+          );
     }
     return months.values.map(MonthlyMovementSummary.fromMap).toList();
   }
@@ -103,7 +123,7 @@ mixin LedgerRepository on DatabaseContext {
           (row) => row['account_id'] == account['id'],
         )) {
           expected +=
-              (move['type'] == 'income' ? 1 : -1) *
+              (['income', 'adjustment_in'].contains(move['type']) ? 1 : -1) *
               (move['amount'] as num).toDouble();
         }
         for (final move in destinations.where(
@@ -149,12 +169,12 @@ mixin LedgerRepository on DatabaseContext {
       });
       await txn.delete('transactions', where: 'id = ?', whereArgs: [tx.id]);
 
-      if (tx.type == 'expense') {
+      if (tx.isNegative) {
         await txn.rawUpdate(
           'UPDATE accounts SET balance = ROUND(balance + ?, 8) WHERE id = ?',
           [tx.amount, tx.accountId],
         );
-      } else if (tx.type == 'income') {
+      } else if (tx.isPositive) {
         await txn.rawUpdate(
           'UPDATE accounts SET balance = ROUND(balance - ?, 8) WHERE id = ?',
           [tx.amount, tx.accountId],

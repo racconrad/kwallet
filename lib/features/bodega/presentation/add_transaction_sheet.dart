@@ -1,3 +1,4 @@
+import '../../../core/models/currency_conversion.dart';
 import '../../../core/theme/category_visuals.dart';
 
 import 'package:flutter/material.dart';
@@ -16,12 +17,14 @@ import 'categories_sheet.dart';
 class AddTransactionSheet extends StatefulWidget {
   final List<Account> accounts;
   final String? preselectedAccountId;
+  final String? preselectedDestinationId;
   final String initialType;
   final String currency;
   const AddTransactionSheet({
     super.key,
     required this.accounts,
     this.preselectedAccountId,
+    this.preselectedDestinationId,
     this.initialType = 'expense',
     this.currency = '\$',
   });
@@ -51,7 +54,9 @@ class _AddTransactionSheetState
     super.initState();
     _account = model.initialAccount(widget.preselectedAccountId);
     final others = widget.accounts.where((a) => a.id != _account);
-    _destination = others.isEmpty ? null : others.first.id;
+    _destination = others.any((a) => a.id == widget.preselectedDestinationId)
+        ? widget.preselectedDestinationId
+        : others.firstOrNull?.id;
   }
 
   @override
@@ -97,31 +102,35 @@ class _AddTransactionSheetState
     if (await model.save(_input) && mounted) Navigator.pop(context);
   }
 
-  Widget _accountPicker({bool destination = false}) =>
-      DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
-        initialValue: destination ? _destination : _account,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: destination ? 'Cuenta destino' : 'Cuenta',
+  Widget _accountPicker({
+    bool destination = false,
+  }) => DropdownButtonFormField<String>(
+    icon: const Icon(Icons.expand_more_rounded),
+    initialValue: destination ? _destination : _account,
+    isExpanded: true,
+    decoration: InputDecoration(
+      labelText: destination ? 'Cuenta destino' : 'Cuenta',
+    ),
+    items: [
+      for (final account in widget.accounts)
+        DropdownMenuItem(
+          value: account.id,
+          child: Text(
+            '${account.name} · ${CurrencyConversion.symbol(account.currency)}',
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-        items: [
-          for (final account in widget.accounts)
-            DropdownMenuItem(
-              value: account.id,
-              child: Text('${account.name} · ${account.currency}', overflow: TextOverflow.ellipsis),
-            ),
-        ],
-        onChanged: _saving
-            ? null
-            : (value) => setState(() {
-                if (destination) {
-                  _destination = value;
-                } else {
-                  _account = value!;
-                }
-              }),
-      );
+    ],
+    onChanged: _saving
+        ? null
+        : (value) => setState(() {
+            if (destination) {
+              _destination = value;
+            } else {
+              _account = value!;
+            }
+          }),
+  );
 
   @override
   Widget build(BuildContext context) => SheetBody(
@@ -177,7 +186,8 @@ class _AddTransactionSheetState
             style: KwallTheme.fontDisplay.copyWith(fontSize: 28),
             decoration: InputDecoration(
               labelText: 'Monto',
-              prefixText: '${widget.accounts.firstWhere((a) => a.id == _account).currency} ',
+              prefixText:
+                  '${CurrencyConversion.symbol(widget.accounts.firstWhere((a) => a.id == _account).currency)} ',
             ),
           ),
           SizedBox(height: 12),
@@ -200,7 +210,7 @@ class _AddTransactionSheetState
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
+                    icon: const Icon(Icons.expand_more_rounded),
                     key: ValueKey('$_type:$_category:${_categories.length}'),
                     initialValue: _category,
                     isExpanded: true,

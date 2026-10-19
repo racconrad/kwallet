@@ -47,6 +47,7 @@ class MovementsViewModel extends ViewModel {
       if (!next) {
         final nextAccounts = await repository.getAccounts(
           includeArchived: true,
+          includeDeleted: true,
         );
         if (!isCurrent(request)) return;
         accounts = List.unmodifiable(nextAccounts);

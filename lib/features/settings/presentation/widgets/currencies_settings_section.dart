@@ -1,4 +1,6 @@
+import '../../../../core/models/currency_conversion.dart';
 import '../../../../core/widgets/currency_selector.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/kwall_theme.dart';
@@ -10,9 +12,11 @@ class CurrenciesSettingsSection extends StatelessWidget {
   final Map<String, double> rates;
   final Map<String, String>? currencyNames;
   final Future<void> Function(String symbol, String name)? onAddCurrency;
-  final Future<void> Function(String currency, double rate, String notes) onSaveRate;
+  final Future<void> Function(String currency, double rate, String notes)
+  onSaveRate;
   final Future<void> Function(String currency) onRemoveCurrency;
-  final Future<List<Map<String, dynamic>>> Function(String currency) onFetchHistory;
+  final Future<List<Map<String, dynamic>>> Function(String currency)
+  onFetchHistory;
 
   const CurrenciesSettingsSection({
     super.key,
@@ -26,7 +30,11 @@ class CurrenciesSettingsSection extends StatelessWidget {
     required this.onFetchHistory,
   });
 
-  void _openRateDialog(BuildContext context, String currency, {bool isNew = false}) {
+  void _openRateDialog(
+    BuildContext context,
+    String currency, {
+    bool isNew = false,
+  }) {
     final dominant = dominantCurrencyController.text.trim().isEmpty
         ? '\$'
         : dominantCurrencyController.text.trim();
@@ -107,17 +115,16 @@ class CurrenciesSettingsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Monedas',
-          style: KwallTheme.fontTitle.copyWith(fontSize: 21),
-        ),
+        Text('Monedas', style: KwallTheme.fontTitle.copyWith(fontSize: 21)),
         const SizedBox(height: 16),
         CurrencySelector(
           value: dominantCurrencyController.text,
           options: {
-            if (dominantCurrencyController.text.trim().isNotEmpty) dominantCurrencyController.text.trim(),
+            if (dominantCurrencyController.text.trim().isNotEmpty)
+              dominantCurrencyController.text.trim(),
             ...referenceCurrencies.where((s) => s.trim().isNotEmpty),
-            if (currencyNames != null) ...currencyNames!.keys.where((s) => s.trim().isNotEmpty),
+            if (currencyNames != null)
+              ...currencyNames!.keys.where((s) => s.trim().isNotEmpty),
           }.toSet(),
           currencyNames: currencyNames,
           label: 'Moneda principal',
@@ -138,13 +145,7 @@ class CurrenciesSettingsSection extends StatelessWidget {
                 InputChip(
                   avatar: const Icon(Icons.currency_exchange_rounded, size: 16),
                   label: Text(
-                    rates.containsKey(c)
-                        ? (currencyNames != null && currencyNames![c]?.isNotEmpty == true
-                            ? '$c · ${currencyNames![c]} (1 = ${rates[c]!.toStringAsFixed(rates[c]! % 1 == 0 ? 0 : 2)} $dominant)'
-                            : '$c (1 = ${rates[c]!.toStringAsFixed(rates[c]! % 1 == 0 ? 0 : 2)} $dominant)')
-                        : (currencyNames != null && currencyNames![c]?.isNotEmpty == true
-                            ? '$c · ${currencyNames![c]}'
-                            : c),
+                    '${CurrencyConversion.label(c, currencyNames)}${rates.containsKey(c) ? ' (1 = ${rates[c]!.toStringAsFixed(rates[c]! % 1 == 0 ? 0 : 2)} ${CurrencyConversion.symbol(dominant)})' : ''}',
                   ),
                   onPressed: () => _openRateDialog(context, c),
                   onDeleted: () => onRemoveCurrency(c),

@@ -1,3 +1,5 @@
+import '../../../core/models/currency_conversion.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -21,15 +23,15 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
   HomeViewModel get _controller => widget.controller;
 
   IconData _iconFor(String key) => switch (key) {
-        'food' => Icons.restaurant_rounded,
-        'coffee' => Icons.coffee_rounded,
-        'transport' => Icons.directions_bus_rounded,
-        'potion' => Icons.water_drop_rounded,
-        'game' => Icons.sports_esports_rounded,
-        'gift' => Icons.card_giftcard_rounded,
-        'home' => Icons.home_rounded,
-        _ => Icons.flash_on_rounded,
-      };
+    'food' => Icons.restaurant_rounded,
+    'coffee' => Icons.coffee_rounded,
+    'transport' => Icons.directions_bus_rounded,
+    'potion' => Icons.water_drop_rounded,
+    'game' => Icons.sports_esports_rounded,
+    'gift' => Icons.card_giftcard_rounded,
+    'home' => Icons.home_rounded,
+    _ => Icons.flash_on_rounded,
+  };
 
   Future<void> _execute(QuickExpense qe) async {
     HapticFeedback.lightImpact();
@@ -42,7 +44,8 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
 
     if (record != null && mounted) {
       Navigator.pop(context);
-      final currency = _controller.accounts
+      final currency =
+          _controller.accounts
               .where((a) => a.id == qe.accountId)
               .firstOrNull
               ?.currency ??
@@ -72,9 +75,11 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
 
   void _openEditor([QuickExpense? item]) {
     final titleController = TextEditingController(text: item?.title ?? '');
-    final amountController =
-        TextEditingController(text: item?.amount.toString() ?? '');
-    String categoryId = item?.categoryId ??
+    final amountController = TextEditingController(
+      text: item?.amount.toString() ?? '',
+    );
+    String categoryId =
+        item?.categoryId ??
         _controller.categories.values.firstOrNull?.id ??
         'cat_other';
     String? accountId = item?.accountId;
@@ -84,23 +89,29 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(item == null ? 'Nuevo gasto rápido' : 'Editar gasto rápido'),
+          title: Text(
+            item == null ? 'Nuevo gasto rápido' : 'Editar gasto rápido',
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Nombre / Título'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre / Título',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: amountController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Monto',
-                    prefixText: '${_controller.currency} ',
+                    prefixText:
+                        '${CurrencyConversion.symbol(_controller.currency)} ',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -117,7 +128,9 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String?>(
                   initialValue: accountId,
-                  decoration: const InputDecoration(labelText: 'Cuenta a debitar'),
+                  decoration: const InputDecoration(
+                    labelText: 'Cuenta a debitar',
+                  ),
                   items: [
                     const DropdownMenuItem(
                       value: null,
@@ -139,8 +152,10 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
                   await _controller.deleteQuickExpense(item.id);
                   if (mounted) setState(() {});
                 },
-                child: Text('Eliminar',
-                    style: TextStyle(color: KwallTheme.expenseRed)),
+                child: Text(
+                  'Eliminar',
+                  style: TextStyle(color: KwallTheme.expenseRed),
+                ),
               ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),

@@ -1,3 +1,8 @@
+import '../../../core/theme/account_visuals.dart';
+import 'statistics_screen.dart';
+import 'add_account_dialog.dart';
+import 'add_transaction_sheet.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/kwall_theme.dart';
@@ -126,6 +131,113 @@ class FinancesScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
+              OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        StatisticsScreen(currency: controller.currency),
+                  ),
+                ),
+                icon: const Icon(Icons.bar_chart_rounded),
+                label: const Text('Estadísticas semanales y mensuales'),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Ahorro',
+                      style: KwallTheme.fontTitle.copyWith(fontSize: 21),
+                    ),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Nueva meta'),
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => AddAccountDialog(
+                        currency: controller.currency,
+                        initialType: 'vault',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                'Ahorrado: ${KwallTheme.formatCurrency(controller.savings, controller.currency)}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              if (!controller.accounts.any((a) => a.type == 'vault'))
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Crea una cuenta de ahorro y aparta dinero para tus metas.',
+                  ),
+                ),
+              for (final account in controller.accounts.where(
+                (a) => a.type == 'vault',
+              )) ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(account.iconData, color: account.displayColor),
+                  onTap: () => onEditAccount(account),
+                  title: Text(account.name),
+                  subtitle: Text(
+                    account.savingsTarget > 0
+                        ? '${KwallTheme.formatCurrency(account.balance, account.currency)} de ${KwallTheme.formatCurrency(account.savingsTarget, account.currency)}'
+                        : KwallTheme.formatCurrency(
+                            account.balance,
+                            account.currency,
+                          ),
+                  ),
+                  trailing: TextButton(
+                    onPressed: controller.accounts.length < 2
+                        ? null
+                        : () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (_) => AddTransactionSheet(
+                              accounts: controller.accounts,
+                              initialType: 'transfer',
+                              currency: controller.currency,
+                              preselectedAccountId: controller.accounts
+                                  .firstWhere((a) => a.id != account.id)
+                                  .id,
+                              preselectedDestinationId: account.id,
+                            ),
+                          ),
+                    child: const Text('Aportar'),
+                  ),
+                ),
+                if (account.savingsTarget > 0) ...[
+                  LinearProgressIndicator(
+                    value: (account.balance / account.savingsTarget).clamp(
+                      0.0,
+                      1.0,
+                    ),
+                    color: account.displayColor,
+                    backgroundColor: KwallTheme.surfaceContainer,
+                    minHeight: 6,
+                    semanticsLabel: 'Progreso de ${account.name}',
+                    semanticsValue:
+                        '${(account.balance / account.savingsTarget * 100).clamp(0, 100).round()} %',
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    account.balance >= account.savingsTarget
+                        ? '¡Meta alcanzada!'
+                        : 'Faltan ${KwallTheme.formatCurrency(account.savingsTarget - account.balance, account.currency)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: KwallTheme.textSecondary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+              ],
+              const SizedBox(height: 16),
+
               // Compromisos semanales
               CommitmentAlert(
                 balance: controller.balance,
@@ -178,19 +290,22 @@ class FinancesScreen extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Color(account.colorValue).withValues(alpha: 0.15),
+                                    color: account.displayColor.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
-                                    Icons.account_balance_wallet_rounded,
+                                    account.iconData,
                                     size: 18,
-                                    color: Color(account.colorValue),
+                                    color: account.displayColor,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         account.name,
@@ -200,11 +315,9 @@ class FinancesScreen extends StatelessWidget {
                                         ),
                                       ),
                                       Text(
-                                        account.type == 'cash'
-                                            ? 'Efectivo'
-                                            : account.type == 'bank'
-                                            ? 'Banco'
-                                            : 'Ahorro',
+                                        account.excludeFromAvailable
+                                            ? '${account.typeLabel} · Fuera del saldo libre'
+                                            : account.typeLabel,
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: KwallTheme.textSecondary,
@@ -243,6 +356,33 @@ class FinancesScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
+              if (controller.inactiveAccounts.isNotEmpty) ...[
+                ExpansionTile(
+                  title: Text(
+                    'Cuentas desactivadas (${controller.inactiveAccounts.length})',
+                  ),
+                  tilePadding: EdgeInsets.zero,
+                  children: [
+                    for (final account in controller.inactiveAccounts)
+                      ListTile(
+                        leading: Icon(
+                          account.iconData,
+                          color: account.displayColor,
+                        ),
+                        title: Text(account.name),
+                        subtitle: Text(
+                          KwallTheme.formatCurrency(
+                            account.balance,
+                            account.currency,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => onEditAccount(account),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
               // 4. Presupuesto
               BudgetPanel(controller: controller, onEdit: onBudget),
               const SizedBox(height: 20),

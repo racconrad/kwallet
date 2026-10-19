@@ -1,7 +1,9 @@
 import '../../../core/models/currency_conversion.dart';
+
 import 'dart:math' as math;
 
 import '../../../core/mvvm/view_model.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../../../core/contracts/app_repositories.dart';
@@ -36,7 +38,10 @@ class HomeViewModel extends ViewModel {
   int _xp = 0;
   int _reward = 0;
   bool _loaded = false;
+  List<Account> inactiveAccounts = const [];
   List<Account> _accounts = const [];
+  Map<String, String> _accountCurrencies = const {};
+  Set<String> _excludedAccountIds = const {};
   List<TransactionRecord> _transactions = const [];
   Map<String, CategoryModel> _categories = const {};
   List<PlannedExpense> _plans = const [];
@@ -65,8 +70,15 @@ class HomeViewModel extends ViewModel {
   String? get filter => _filter;
   int get xp => _xp;
   String get currency => _settings['currency'] ?? '\$';
-  double _convert(double value, String from) => CurrencyConversion.convert(value, from: from, to: currency, rates: _rates, dominantCurrency: currency);
-  double get balance => _accounts.fold(0, (sum, a) => sum + _convert(a.balance, a.currency));
+  double _convert(double value, String from) => CurrencyConversion.convert(
+    value,
+    from: from,
+    to: currency,
+    rates: _rates,
+    dominantCurrency: currency,
+  );
+  double get balance =>
+      _accounts.fold(0, (sum, a) => sum + _convert(a.balance, a.currency));
 
   // Grouped cash diversification by account base currency
   Map<String, double> get cashByCurrency {
@@ -78,8 +90,25 @@ class HomeViewModel extends ViewModel {
     return map;
   }
 
-  double get reserves => _accounts.fold(0, (sum, a) => sum + _convert(a.minimumBalance, a.currency));
-  List<PlannedExpense> get _convertedPlans => _plans.map((p) => p.copyWith(amount: _convert(p.amount, _accounts.where((a) => a.id == p.accountId).firstOrNull?.currency ?? currency))).toList();
+  double get reserves => _accounts.fold(
+    0,
+    (sum, a) =>
+        sum +
+        _convert(
+          a.type == 'vault' ? math.max(0, a.balance) : a.minimumBalance,
+          a.currency,
+        ),
+  );
+  List<PlannedExpense> get _convertedPlans => _plans
+      .map(
+        (p) => p.copyWith(
+          amount: _convert(
+            p.amount,
+            _accountCurrencies[p.accountId] ?? currency,
+          ),
+        ),
+      )
+      .toList();
   double get committed => plannedTotal(
     _convertedPlans,
     DateTime.now(),
@@ -95,16 +124,40 @@ class HomeViewModel extends ViewModel {
     );
   }
 
-  double get available => math.max(0, balance - reserves - committed);
+  double get savings => _accounts
+      .where((a) => a.type == 'vault')
+      .fold(0, (sum, a) => sum + _convert(math.max(0, a.balance), a.currency));
+  double get _availableCommitments => plannedTotal(
+    _convertedPlans
+        .where((p) => !_excludedAccountIds.contains(p.accountId))
+        .toList(),
+    DateTime.now(),
+    DateTime.now().add(const Duration(days: 30)),
+    includeOverdue: true,
+  );
+  double get _spendable => _accounts
+      .where((a) => !a.excludeFromAvailable)
+      .fold(
+        0,
+        (sum, a) =>
+            sum +
+            _convert(
+              a.type == 'vault'
+                  ? math.min(0, a.balance)
+                  : a.balance - a.minimumBalance,
+              a.currency,
+            ),
+      );
+  double get available => math.max(0, _spendable - _availableCommitments);
   String get budgetMode => _settings['budget_mode'] ?? 'assigned';
   double get share =>
       (double.tryParse(_settings['budget_share'] ?? '') ?? 100).clamp(1, 100);
   double get limit => budgetMode == 'available'
       ? flexibleBudget(
           spent: spent,
-          balance: balance,
-          reserves: reserves,
-          commitments: committed,
+          balance: _spendable,
+          reserves: 0,
+          commitments: _availableCommitments,
           share: share,
         )
       : _allocations[_period] ??
@@ -132,9 +185,8 @@ class HomeViewModel extends ViewModel {
   int get completedHabitsToday =>
       _habits.where((h) => h.logFor(DateTime.now())?.completed == true).length;
   int get totalHabitsToday => _habits.length;
-  int get pendingHabitsCount => _habits
-      .where((h) => h.logFor(DateTime.now())?.completed != true)
-      .length;
+  int get pendingHabitsCount =>
+      _habits.where((h) => h.logFor(DateTime.now())?.completed != true).length;
 
   List<({PersonalNote note, int index, NoteItem item})> get pendingTasks {
     final result = <({PersonalNote note, int index, NoteItem item})>[];
@@ -170,7 +222,8 @@ class HomeViewModel extends ViewModel {
     String? accountId,
   }) async {
     final targetAccount = accountId != null
-        ? _accounts.where((a) => a.id == accountId).firstOrNull ?? _accounts.firstOrNull
+        ? _accounts.where((a) => a.id == accountId).firstOrNull ??
+              _accounts.firstOrNull
         : _accounts.firstOrNull;
     if (targetAccount == null) return null;
 
@@ -206,8 +259,12 @@ class HomeViewModel extends ViewModel {
     );
     if (ok) {
       final now = day ?? DateTime.now();
-      final todayStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      await journal.markFrontPendingItemDone('habit_${habit.id}_$todayStr', true);
+      final todayStr =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      await journal.markFrontPendingItemDone(
+        'habit_${habit.id}_$todayStr',
+        true,
+      );
       _syncWidget();
     }
     return ok;
@@ -287,12 +344,19 @@ class HomeViewModel extends ViewModel {
   Future<void> load() async {
     final version = beginRequest();
     try {
-      final pendingAffection = await WidgetSyncService.consumePendingAffection();
+      final pendingAffection =
+          await WidgetSyncService.consumePendingAffection();
       if (pendingAffection > 0) {
         await journal.awardAffection(pendingAffection);
       }
       final now = DateTime.now();
-      final accounts = await finance.getAccounts();
+      final allAccounts = await finance.getAccounts(
+        includeArchived: true,
+        includeDeleted: true,
+      );
+      final accounts = allAccounts
+          .where((a) => !a.isArchived && !a.isDeleted)
+          .toList();
       final filter = accounts.any((a) => a.id == _filter) ? _filter : null;
       final transactions = await finance.getTransactions(
         accountId: filter,
@@ -310,12 +374,33 @@ class HomeViewModel extends ViewModel {
       final quickExpenses = await finance.getQuickExpenses();
       final spent = await finance.getPeriodSpending(now);
       for (final account in accounts) {
-        CurrencyConversion.convert(account.balance, from: account.currency, to: settings['currency'] ?? '\$', rates: rates, dominantCurrency: settings['currency'] ?? '\$');
-        CurrencyConversion.convert(account.minimumBalance, from: account.currency, to: settings['currency'] ?? '\$', rates: rates, dominantCurrency: settings['currency'] ?? '\$');
+        CurrencyConversion.convert(
+          account.balance,
+          from: account.currency,
+          to: settings['currency'] ?? '\$',
+          rates: rates,
+          dominantCurrency: settings['currency'] ?? '\$',
+        );
+        CurrencyConversion.convert(
+          account.minimumBalance,
+          from: account.currency,
+          to: settings['currency'] ?? '\$',
+          rates: rates,
+          dominantCurrency: settings['currency'] ?? '\$',
+        );
       }
       if (!isCurrent(version)) return;
       _reward = _loaded ? math.max(0, xp - _xp) : 0;
+      _accountCurrencies = Map.unmodifiable({
+        for (final a in allAccounts) a.id: a.currency,
+      });
+      _excludedAccountIds = Set.unmodifiable(
+        allAccounts.where((a) => a.excludeFromAvailable).map((a) => a.id),
+      );
       _accounts = List.unmodifiable(accounts);
+      inactiveAccounts = List.unmodifiable(
+        allAccounts.where((a) => a.isArchived && !a.isDeleted),
+      );
       _filter = filter;
       _transactions = List.unmodifiable(transactions);
       _categories = Map.unmodifiable({for (final c in categories) c.id: c});
@@ -332,7 +417,6 @@ class HomeViewModel extends ViewModel {
       _loaded = true;
       error = null;
 
-
       changed();
       _syncWidget();
     } catch (e) {
@@ -346,7 +430,8 @@ class HomeViewModel extends ViewModel {
         }
 
         final errStr = e.toString().toLowerCase();
-        if (errStr.contains('no es compatible') || errStr.contains('incompatible')) {
+        if (errStr.contains('no es compatible') ||
+            errStr.contains('incompatible')) {
           error = 'Versión no compatible con tu app actual. Requiere una versión más reciente de kwall.';
         } else if (errStr.contains('corrupt') ||
             errStr.contains('databaseexception') ||
@@ -363,26 +448,26 @@ class HomeViewModel extends ViewModel {
   }
 
   Future<bool> restoreRecovery() => perform(() async {
-        final ok = await preferences.restoreLatestRecoveryCopy();
-        if (!ok) throw StateError('No hay copia disponible para restaurar.');
-        await load();
-      });
+    final ok = await preferences.restoreLatestRecoveryCopy();
+    if (!ok) throw StateError('No hay copia disponible para restaurar.');
+    await load();
+  });
 
   Future<bool> repairDatabase() => perform(() async {
-        await preferences.repairOrResetDatabase();
-        await load();
-      });
+    await preferences.repairOrResetDatabase();
+    await load();
+  });
 
   Future<bool> createNewVault() => repairDatabase();
 
   Future<bool> importBackup() => perform(() async {
-        final picker = files ?? NativeDeviceFiles();
-        final content = await picker.pickBackup();
-        if (content == null || content.trim().isEmpty) return;
-        await preferences.repairOrResetDatabase();
-        await preferences.importFullDataFromJson(content);
-        await load();
-      });
+    final picker = files ?? NativeDeviceFiles();
+    final content = await picker.pickBackup();
+    if (content == null || content.trim().isEmpty) return;
+    await preferences.repairOrResetDatabase();
+    await preferences.importFullDataFromJson(content);
+    await load();
+  });
 
   Future<void> saveSetting(String key, String value) async {
     _settings = Map.unmodifiable({..._settings, key: value});

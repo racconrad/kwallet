@@ -101,7 +101,7 @@ class _MovementsScreenState
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
+                        icon: const Icon(Icons.expand_more_rounded),
                         initialValue: _account,
                         isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Cuenta'),
@@ -125,7 +125,7 @@ class _MovementsScreenState
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
+                        icon: const Icon(Icons.expand_more_rounded),
                         initialValue: _type,
                         isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Tipo'),
@@ -145,6 +145,10 @@ class _MovementsScreenState
                           DropdownMenuItem(
                             value: 'transfer',
                             child: Text('Transferencias'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'adjustment',
+                            child: Text('Ajustes de saldo'),
                           ),
                         ],
                         onChanged: model.selectType,
@@ -295,13 +299,13 @@ class _MovementsScreenState
               '${DateFormat('dd/MM/yyyy').format(tx.date)} · ${account?.name ?? 'Cuenta archivada'}',
             ),
             trailing: Text(
-              '${tx.isExpense
+              '${tx.isNegative
                   ? '-'
-                  : tx.isIncome
+                  : tx.isPositive
                   ? '+'
-                  : ''}${KwallTheme.formatCurrency(tx.amount, widget.currency)}',
+                  : ''}${KwallTheme.formatCurrency(tx.amount, tx.currency ?? account?.currency ?? widget.currency)}',
               style: TextStyle(
-                color: tx.isExpense
+                color: tx.isNegative
                     ? KwallTheme.expenseRed
                     : KwallTheme.incomeGreen,
               ),
@@ -319,7 +323,10 @@ class _MovementsScreenState
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      KwallTheme.formatCurrency(tx.amount, widget.currency),
+                      KwallTheme.formatCurrency(
+                        tx.amount,
+                        tx.currency ?? account?.currency ?? widget.currency,
+                      ),
                       style: KwallTheme.fontDisplay.copyWith(fontSize: 30),
                     ),
                     Text(

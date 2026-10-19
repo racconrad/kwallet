@@ -22,7 +22,9 @@ class TransactionFilter {
       clauses.add('(account_id = ? OR to_account_id = ?)');
       args.addAll([accountId, accountId]);
     }
-    if (type != null) {
+    if (type == 'adjustment') {
+      clauses.add("type IN ('adjustment_in','adjustment_out')");
+    } else if (type != null) {
       clauses.add('type = ?');
       args.add(type);
     }

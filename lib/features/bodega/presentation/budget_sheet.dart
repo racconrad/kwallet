@@ -1,3 +1,5 @@
+import '../../../core/models/currency_conversion.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -107,7 +109,7 @@ class _BudgetSheetState
               style: KwallTheme.fontDisplay.copyWith(fontSize: 30),
               decoration: InputDecoration(
                 labelText: 'Asignación para este período',
-                prefixText: '${widget.currency} ',
+                prefixText: '${CurrencyConversion.symbol(widget.currency)} ',
               ),
             ),
             Slider(

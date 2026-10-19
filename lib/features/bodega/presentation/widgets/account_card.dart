@@ -1,3 +1,5 @@
+import '../../../../core/theme/account_visuals.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/currency_conversion.dart';
@@ -29,12 +31,7 @@ class AccountCard extends StatelessWidget {
         : account.balance > 0
         ? 1.0
         : 0.0;
-    final icon = switch (account.type) {
-      'bank' => Icons.account_balance_outlined,
-      'credit' => Icons.credit_card_rounded,
-      'vault' => Icons.savings_outlined,
-      _ => Icons.wallet_outlined,
-    };
+    final icon = account.iconData;
     return Material(
       color: selected ? KwallTheme.accentLight : KwallTheme.surface,
       shape: RoundedRectangleBorder(
@@ -61,11 +58,13 @@ class AccountCard extends StatelessWidget {
                       value: progress,
                       icon: icon,
                       size: 54,
-                      color: below ? KwallTheme.expenseRed : KwallTheme.accent,
+                      color: below
+                          ? KwallTheme.expenseRed
+                          : account.displayColor,
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Editar mínimo de ${account.name}',
+                    tooltip: 'Editar ${account.name}',
                     onPressed: onEdit,
                     icon: const Icon(Icons.more_horiz_rounded),
                     visualDensity: VisualDensity.compact,
@@ -89,40 +88,42 @@ class AccountCard extends StatelessWidget {
               ),
               Builder(
                 builder: (context) {
-                  final isDiff = account.currency.trim().toUpperCase() !=
+                  final isDiff =
+                      account.currency.trim().toUpperCase() !=
                       currency.trim().toUpperCase();
                   final equivalents = <String>[];
 
                   try {
-                  if (isDiff) {
-                    final inDominant = CurrencyConversion.convert(
-                      account.balance,
-                      from: account.currency,
-                      to: currency,
-                      rates: rates,
-                      dominantCurrency: currency,
-                    );
-                    equivalents.add(
-                      '≈ ${KwallTheme.formatCurrency(inDominant, currency)}',
-                    );
-                  } else if (rates.isNotEmpty) {
-                    for (final entry in rates.entries) {
-                      if (entry.key.toUpperCase() != currency.toUpperCase()) {
-                        final inAlt = CurrencyConversion.convert(
-                          account.balance,
-                          from: currency,
-                          to: entry.key,
-                          rates: rates,
-                          dominantCurrency: currency,
-                        );
-                        equivalents.add(
-                          '≈ ${KwallTheme.formatCurrency(inAlt, entry.key)}',
-                        );
+                    if (isDiff) {
+                      final inDominant = CurrencyConversion.convert(
+                        account.balance,
+                        from: account.currency,
+                        to: currency,
+                        rates: rates,
+                        dominantCurrency: currency,
+                      );
+                      equivalents.add(
+                        '≈ ${KwallTheme.formatCurrency(inDominant, currency)}',
+                      );
+                    } else if (rates.isNotEmpty) {
+                      for (final entry in rates.entries) {
+                        if (entry.key.toUpperCase() != currency.toUpperCase()) {
+                          final inAlt = CurrencyConversion.convert(
+                            account.balance,
+                            from: currency,
+                            to: entry.key,
+                            rates: rates,
+                            dominantCurrency: currency,
+                          );
+                          equivalents.add(
+                            '≈ ${KwallTheme.formatCurrency(inAlt, entry.key)}',
+                          );
+                        }
                       }
                     }
+                  } on StateError {
+                    equivalents.add('Tasa pendiente');
                   }
-
-                  } on StateError { equivalents.add('Tasa pendiente'); }
                   if (equivalents.isEmpty) return const SizedBox.shrink();
 
                   return Padding(
@@ -138,7 +139,9 @@ class AccountCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: KwallTheme.surfaceContainer.withValues(alpha: 0.7),
+                              color: KwallTheme.surfaceContainer.withValues(
+                                alpha: 0.7,
+                              ),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(

@@ -1,3 +1,4 @@
+import '../features/bodega/view_models/statistics_view_model.dart';
 import '../core/contracts/app_repositories.dart';
 import '../core/database/database_service.dart';
 import '../core/services/device_files.dart';
@@ -37,7 +38,8 @@ class AppDependencies {
     );
   }
   AppViewModel app() => AppViewModel(settings)..load();
-  HomeViewModel home() => HomeViewModel(finance, journal, settings, files: files)..load();
+  HomeViewModel home() =>
+      HomeViewModel(finance, journal, settings, files: files)..load();
   LaunchViewModel launch() => LaunchViewModel(settings, files: files)..load();
   JournalViewModel journalScreen() =>
       JournalViewModel(journal, settings)..load();
@@ -46,10 +48,12 @@ class AppDependencies {
       SettingsViewModel(settings, files)..load();
   PlanningViewModel planning() =>
       PlanningViewModel(finance, settings, journal)..load(restoreRange: true);
+  StatisticsViewModel statistics() => StatisticsViewModel(finance)..load();
   MovementsViewModel movements() => MovementsViewModel(finance)..load();
   CategoriesViewModel categories(String type) =>
       CategoriesViewModel(finance, type)..load();
-  AccountEditorViewModel accountEditor() => AccountEditorViewModel(finance, settings)..loadCurrencies();
+  AccountEditorViewModel accountEditor() =>
+      AccountEditorViewModel(finance, settings)..loadCurrencies();
   BudgetEditorViewModel budgetEditor() => BudgetEditorViewModel(finance);
   PlanEditorViewModel planEditor() => PlanEditorViewModel(finance);
   TransactionEditorViewModel transactionEditor(

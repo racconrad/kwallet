@@ -1,3 +1,5 @@
+import '../../features/bodega/models/spending_summary.dart';
+
 import 'package:flutter/foundation.dart';
 
 import '../../features/bodega/models/account.dart';
@@ -18,9 +20,28 @@ abstract interface class Repository {
 }
 
 abstract interface class FinanceRepository implements Repository {
-  Future<List<Account>> getAccounts({bool includeArchived = false});
+  Future<List<Account>> getAccounts({
+    bool includeArchived = false,
+    bool includeDeleted = false,
+  });
   Future<void> createAccount(Account account);
   Future<void> updateAccount(Account account);
+  Future<void> setAccountArchived(String id, bool archived);
+  Future<void> deleteAccount(String id);
+  Future<void> adjustAccountBalance(
+    String id,
+    double balance, {
+    required double expectedBalance,
+    required String reason,
+  });
+  Future<List<DailySpend>> getSpendingSeries({
+    required bool monthly,
+    DateTime? date,
+  });
+  Future<List<CategoryBreakdown>> getExpenseBreakdown({
+    required DateTime start,
+    required DateTime end,
+  });
   Future<List<CategoryModel>> getCategories({String? type});
   Future<void> createCategory(CategoryModel category);
   Future<void> deleteCategory(String id);
@@ -62,7 +83,9 @@ abstract interface class FinanceRepository implements Repository {
     String accountId, {
     required DateTime expectedDueDate,
   });
-  Future<List<Map<String, dynamic>>> getAccountCurrencyHistory(String accountId);
+  Future<List<Map<String, dynamic>>> getAccountCurrencyHistory(
+    String accountId,
+  );
   Future<void> recordCurrencyChange({
     required String accountId,
     required String baseCurrency,
@@ -113,7 +136,9 @@ abstract interface class JournalRepository implements Repository {
   Future<int> getExperience();
   Future<bool> awardAffection(int points);
   Future<void> syncFrontPendingItems(List<FrontPendingItem> items);
-  Future<List<FrontPendingItem>> getFrontPendingItems({bool onlyPending = true});
+  Future<List<FrontPendingItem>> getFrontPendingItems({
+    bool onlyPending = true,
+  });
   Future<void> markFrontPendingItemDone(String id, bool done);
 }
 

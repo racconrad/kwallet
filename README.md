@@ -26,7 +26,7 @@ Your everyday data lives on your device. You can use the app without connecting 
 
 |                     | What you can do                                                                                              |
 | :------------------ | :----------------------------------------------------------------------------------------------------------- |
-| **Money**           | Manage multiple accounts, record income, expenses, and transfers, and organize transactions with categories. |
+| **Money**           | Manage multiple accounts, choose which count toward available funds, record income, expenses, and transfers, and organize transactions with categories. |
 | **Budgets**         | Plan daily, weekly, or monthly spending, with protected balances and planned commitments.                    |
 | **Currencies**      | Choose account currencies and maintain shared manual conversion rates with rate history.                     |
 | **Planning**        | Keep recurring payments and dated commitments on a calendar, then review upcoming cash flow.                 |

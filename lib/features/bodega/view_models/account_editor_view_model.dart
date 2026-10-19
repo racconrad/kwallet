@@ -31,8 +31,11 @@ class AccountEditorViewModel extends ViewModel {
         ...userCurrencies.keys,
       }.where((s) => s.trim().isNotEmpty).toList()..sort();
       changed();
-    } catch (_) { fail('No se pudieron cargar las monedas'); }
+    } catch (_) {
+      fail('No se pudieron cargar las monedas');
+    }
   }
+
   Future<bool> save({
     Account? original,
     required String name,
@@ -42,17 +45,25 @@ class AccountEditorViewModel extends ViewModel {
     required String currency,
     List<String>? currencies,
     required int color,
+    String iconKey = 'wallet',
+    String targetText = '0',
+    bool? excludeFromAvailable,
   }) {
     final balance = parseAmount(balanceText);
     final minimum = parseAmount(minimumText);
+    final target = parseAmount(targetText);
     if (name.trim().isEmpty ||
         balance == null ||
         minimum == null ||
-        minimum < 0) {
+        minimum < 0 ||
+        target == null ||
+        target < 0) {
       return Future.value(fail('Completa el nombre, saldo y mínimo válido.'));
     }
     final effectiveCurrencies = currencies != null && currencies.isNotEmpty
-        ? (currencies.contains(currency) ? currencies : [currency, ...currencies])
+        ? (currencies.contains(currency)
+              ? currencies
+              : [currency, ...currencies])
         : [currency];
 
     final account =
@@ -60,6 +71,10 @@ class AccountEditorViewModel extends ViewModel {
           name: name.trim(),
           type: type,
           minimumBalance: minimum,
+          savingsTarget: target,
+          excludeFromAvailable: excludeFromAvailable,
+          colorValue: color,
+          iconKey: iconKey,
           currency: currency,
           currencies: effectiveCurrencies,
         ) ??
@@ -72,12 +87,37 @@ class AccountEditorViewModel extends ViewModel {
           currency: currency,
           currencies: effectiveCurrencies,
           colorValue: color,
+          iconKey: iconKey,
+          savingsTarget: target,
+          excludeFromAvailable: excludeFromAvailable ?? false,
           createdAt: DateTime.now(),
         );
     return perform(
       () => original == null
           ? repository.createAccount(account)
           : repository.updateAccount(account),
+    );
+  }
+
+  Future<bool> archive(Account account) => perform(
+    () => repository.setAccountArchived(account.id, !account.isArchived),
+  );
+  Future<bool> delete(Account account) =>
+      perform(() => repository.deleteAccount(account.id));
+  Future<bool> adjust(Account account, String text, String reason) {
+    final balance = parseAmount(text);
+    if (balance == null || reason.trim().isEmpty) {
+      return Future.value(
+        fail('Indica un saldo válido y el motivo del ajuste.'),
+      );
+    }
+    return perform(
+      () => repository.adjustAccountBalance(
+        account.id,
+        balance,
+        expectedBalance: account.balance,
+        reason: reason,
+      ),
     );
   }
 
