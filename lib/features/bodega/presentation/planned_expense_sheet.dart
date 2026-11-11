@@ -1,16 +1,19 @@
-import '../../../core/models/currency_conversion.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/plan_editor_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../models/account.dart';
-import '../models/category_model.dart';
-import '../models/planned_expense.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/bodega/view_models/plan_editor_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
+import 'package:knotes/core/theme/account_visuals.dart';
+import 'package:knotes/core/theme/category_visuals.dart';
 
 class PlanSheet extends StatefulWidget {
   final PlannedExpense? plan;
@@ -115,7 +118,7 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
             Expanded(
               child: Text(
                 widget.plan == null ? 'Nueva fecha' : 'Editar fecha',
-                style: KwallTheme.fontTitle.copyWith(fontSize: 20),
+                style: KnotesTheme.fontTitle.copyWith(fontSize: 20),
               ),
             ),
             IconButton(
@@ -141,7 +144,7 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: KwallTheme.textSecondary,
+              color: KnotesTheme.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -180,6 +183,7 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
           ),
           SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            borderRadius: dropdownRadius,
             icon: const Icon(Icons.expand_more_rounded),
             initialValue: _category,
             isExpanded: true,
@@ -188,13 +192,14 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
               for (final cat in widget.categories)
                 DropdownMenuItem(
                   value: cat.id,
-                  child: Text(cat.name, overflow: TextOverflow.ellipsis),
+                  child: MenuLabel(cat.iconData, cat.name),
                 ),
             ],
             onChanged: (value) => setState(() => _category = value),
           ),
           SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            borderRadius: dropdownRadius,
             icon: const Icon(Icons.expand_more_rounded),
             initialValue: _account,
             isExpanded: true,
@@ -204,12 +209,16 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
             items: [
               DropdownMenuItem<String>(
                 value: null,
-                child: Text('Elegir al pagar'),
+                child: MenuLabel(Icons.touch_app_outlined, 'Elegir al pagar'),
               ),
               for (final account in widget.accounts)
                 DropdownMenuItem(
                   value: account.id,
-                  child: Text(account.name, overflow: TextOverflow.ellipsis),
+                  child: MenuLabel(
+                    account.iconData,
+                    account.name,
+                    color: account.displayColor,
+                  ),
                 ),
             ],
             onChanged: (value) => setState(() => _account = value),
@@ -222,17 +231,19 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
         ),
         SizedBox(height: 12),
         DropdownButtonFormField<String>(
+          borderRadius: dropdownRadius,
+          isExpanded: true,
           icon: const Icon(Icons.expand_more_rounded),
           initialValue: _recurrence,
           decoration: InputDecoration(labelText: 'Repetir'),
           items: [
-            for (final entry in {
-              'one_time': 'Una vez',
-              'weekly': 'Cada semana',
-              'monthly': 'Cada mes',
-              'yearly': 'Cada año',
-            }.entries)
-              DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+            for (final (value, icon, text) in const [
+              ('one_time', Icons.event_outlined, 'Una vez'),
+              ('weekly', Icons.view_week_outlined, 'Cada semana'),
+              ('monthly', Icons.calendar_month_outlined, 'Cada mes'),
+              ('yearly', Icons.event_repeat_outlined, 'Cada año'),
+            ])
+              DropdownMenuItem(value: value, child: MenuLabel(icon, text)),
           ],
           onChanged: (value) => setState(() => _recurrence = value!),
         ),
@@ -251,7 +262,7 @@ class _PlanSheetState extends ViewModelState<PlanSheet, PlanEditorViewModel> {
           },
         ),
         if (_error != null)
-          Text(_error!, style: TextStyle(color: KwallTheme.expenseRed)),
+          Text(_error!, style: TextStyle(color: KnotesTheme.expenseRed)),
         SizedBox(height: 12),
         FilledButton.icon(
           onPressed: _saving ? null : _save,

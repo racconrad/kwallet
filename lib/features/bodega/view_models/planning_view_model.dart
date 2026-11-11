@@ -1,12 +1,12 @@
-import '../../../core/models/currency_conversion.dart';
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/models/date_span.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../../journal/models/journal_models.dart';
-import '../models/account.dart';
-import '../models/category_model.dart';
-import '../models/finance_overview.dart';
-import '../models/planned_expense.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/models/date_span.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
 
 class PlanningViewModel extends ViewModel {
   final FinanceRepository repository;

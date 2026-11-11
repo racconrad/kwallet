@@ -1,20 +1,20 @@
-import '../../../core/theme/account_visuals.dart';
-import 'statistics_screen.dart';
-import 'add_account_dialog.dart';
-import 'add_transaction_sheet.dart';
+import 'package:knotes/core/theme/account_visuals.dart';
+import 'package:knotes/features/bodega/presentation/statistics_screen.dart';
+import 'package:knotes/features/bodega/presentation/add_account_dialog.dart';
+import 'package:knotes/features/bodega/presentation/add_transaction_sheet.dart';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../../../core/widgets/financial_balance_card.dart';
-import '../../../core/widgets/juice_widgets.dart';
-import '../../../core/widgets/pet_cameo_empty_state.dart';
-import '../models/account.dart';
-import '../view_models/home_view_model.dart';
-import 'movements_screen.dart';
-import 'widgets/budget_panel.dart';
-import 'widgets/movement_tile.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/financial_balance_card.dart';
+import 'package:knotes/core/widgets/juice_widgets.dart';
+import 'package:knotes/core/widgets/pet_cameo_empty_state.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/features/bodega/presentation/movements_screen.dart';
+import 'package:knotes/features/bodega/presentation/widgets/budget_panel.dart';
+import 'package:knotes/features/bodega/presentation/widgets/movement_tile.dart';
 
 class FinancesScreen extends StatelessWidget {
   final HomeViewModel controller;
@@ -52,12 +52,12 @@ class FinancesScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: KwallTheme.accentLight,
+                      color: KnotesTheme.accentLight,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.account_balance_wallet_rounded,
-                      color: KwallTheme.accent,
+                      color: KnotesTheme.accent,
                       size: 24,
                     ),
                   ),
@@ -68,13 +68,13 @@ class FinancesScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Finanzas',
-                          style: KwallTheme.fontTitle.copyWith(fontSize: 26),
+                          style: KnotesTheme.fontTitle.copyWith(fontSize: 26),
                         ),
                         Text(
                           'Control de ingresos, gastos y cuentas',
                           style: TextStyle(
                             fontSize: 12,
-                            color: KwallTheme.textSecondary,
+                            color: KnotesTheme.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -148,7 +148,7 @@ class FinancesScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Ahorro',
-                      style: KwallTheme.fontTitle.copyWith(fontSize: 21),
+                      style: KnotesTheme.fontTitle.copyWith(fontSize: 21),
                     ),
                   ),
                   TextButton.icon(
@@ -165,7 +165,7 @@ class FinancesScreen extends StatelessWidget {
                 ],
               ),
               Text(
-                'Ahorrado: ${KwallTheme.formatCurrency(controller.savings, controller.currency)}',
+                'Ahorrado: ${KnotesTheme.formatCurrency(controller.savings, controller.currency)}',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               if (!controller.accounts.any((a) => a.type == 'vault'))
@@ -185,8 +185,8 @@ class FinancesScreen extends StatelessWidget {
                   title: Text(account.name),
                   subtitle: Text(
                     account.savingsTarget > 0
-                        ? '${KwallTheme.formatCurrency(account.balance, account.currency)} de ${KwallTheme.formatCurrency(account.savingsTarget, account.currency)}'
-                        : KwallTheme.formatCurrency(
+                        ? '${KnotesTheme.formatCurrency(account.balance, account.currency)} de ${KnotesTheme.formatCurrency(account.savingsTarget, account.currency)}'
+                        : KnotesTheme.formatCurrency(
                             account.balance,
                             account.currency,
                           ),
@@ -217,7 +217,7 @@ class FinancesScreen extends StatelessWidget {
                       1.0,
                     ),
                     color: account.displayColor,
-                    backgroundColor: KwallTheme.surfaceContainer,
+                    backgroundColor: KnotesTheme.surfaceContainer,
                     minHeight: 6,
                     semanticsLabel: 'Progreso de ${account.name}',
                     semanticsValue:
@@ -227,10 +227,10 @@ class FinancesScreen extends StatelessWidget {
                   Text(
                     account.balance >= account.savingsTarget
                         ? '¡Meta alcanzada!'
-                        : 'Faltan ${KwallTheme.formatCurrency(account.savingsTarget - account.balance, account.currency)}',
+                        : 'Faltan ${KnotesTheme.formatCurrency(account.savingsTarget - account.balance, account.currency)}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: KwallTheme.textSecondary,
+                      color: KnotesTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -256,7 +256,7 @@ class FinancesScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Cuentas (${controller.accounts.length})',
-                          style: KwallTheme.fontTitle.copyWith(fontSize: 18),
+                          style: KnotesTheme.fontTitle.copyWith(fontSize: 18),
                         ),
                         IconButton.filledTonal(
                           tooltip: 'Nueva cuenta',
@@ -278,7 +278,9 @@ class FinancesScreen extends StatelessWidget {
                     else
                       for (final account in controller.accounts) ...[
                         InkWell(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                            KnotesTheme.radiusSm,
+                          ),
                           onTap: () => onEditAccount(account),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
@@ -320,14 +322,14 @@ class FinancesScreen extends StatelessWidget {
                                             : account.typeLabel,
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: KwallTheme.textSecondary,
+                                          color: KnotesTheme.textSecondary,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 Text(
-                                  KwallTheme.formatCurrency(
+                                  KnotesTheme.formatCurrency(
                                     account.balance,
                                     account.currency,
                                   ),
@@ -335,15 +337,15 @@ class FinancesScreen extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
                                     color: account.balance < 0
-                                        ? KwallTheme.expenseRed
-                                        : KwallTheme.textPrimary,
+                                        ? KnotesTheme.expenseRed
+                                        : KnotesTheme.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
                                 Icon(
                                   Icons.chevron_right_rounded,
                                   size: 18,
-                                  color: KwallTheme.textSecondary,
+                                  color: KnotesTheme.textSecondary,
                                 ),
                               ],
                             ),
@@ -371,7 +373,7 @@ class FinancesScreen extends StatelessWidget {
                         ),
                         title: Text(account.name),
                         subtitle: Text(
-                          KwallTheme.formatCurrency(
+                          KnotesTheme.formatCurrency(
                             account.balance,
                             account.currency,
                           ),
@@ -393,7 +395,7 @@ class FinancesScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Movimientos',
-                    style: KwallTheme.fontTitle.copyWith(fontSize: 21),
+                    style: KnotesTheme.fontTitle.copyWith(fontSize: 21),
                   ),
                   TextButton.icon(
                     onPressed: () => Navigator.push(

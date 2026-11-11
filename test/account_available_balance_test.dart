@@ -2,18 +2,18 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kwall/app/app_dependencies.dart';
-import 'package:kwall/app/app_scope.dart';
-import 'package:kwall/core/database/database_backup.dart';
-import 'package:kwall/core/database/database_service.dart';
-import 'package:kwall/core/services/device_files.dart';
-import 'package:kwall/core/theme/kwall_theme.dart';
-import 'package:kwall/features/bodega/models/account.dart';
-import 'package:kwall/features/bodega/models/planned_expense.dart';
-import 'package:kwall/features/bodega/models/transaction_record.dart';
-import 'package:kwall/features/bodega/presentation/add_account_dialog.dart';
-import 'package:kwall/features/bodega/view_models/account_editor_view_model.dart';
-import 'package:kwall/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/app/app_scope.dart';
+import 'package:knotes/core/database/database_backup.dart';
+import 'package:knotes/core/database/database_service.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/features/bodega/presentation/add_account_dialog.dart';
+import 'package:knotes/features/bodega/view_models/account_editor_view_model.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 Account account(
@@ -179,7 +179,7 @@ void main() {
 
   test('v7 upgrade and old backup keep existing accounts included without changing money', () async {
     final directory = await Directory.systemTemp.createTemp(
-      'kwall-v7-available-',
+      'knotes-v7-available-',
     );
     addTearDown(() => directory.delete(recursive: true));
     final path = '${directory.path}/legacy.db';
@@ -259,12 +259,12 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(
-        () => KwallTheme.configure({'theme_mode': 'light'}, Brightness.light),
+        () => KnotesTheme.configure({'theme_mode': 'light'}, Brightness.light),
       );
       for (final size in [const Size(320, 760), const Size(1024, 900)]) {
         for (final mode in ['light', 'dark']) {
           tester.view.physicalSize = size;
-          KwallTheme.configure({'theme_mode': mode}, Brightness.light);
+          KnotesTheme.configure({'theme_mode': mode}, Brightness.light);
           final stored = await tester.runAsync(
             () async => (await service.getAccounts()).single,
           );
@@ -273,7 +273,7 @@ void main() {
             AppScope(
               dependencies: dependencies,
               child: MaterialApp(
-                theme: KwallTheme.expressiveTheme,
+                theme: KnotesTheme.expressiveTheme,
                 builder: (context, child) => MediaQuery(
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(size.width == 320 ? 1.3 : 1),

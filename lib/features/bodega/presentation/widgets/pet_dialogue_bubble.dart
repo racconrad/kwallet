@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../view_models/home_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
 
 class PetDialogueBubble extends StatelessWidget {
   final HomeViewModel controller;
@@ -25,15 +25,18 @@ class PetDialogueBubble extends StatelessWidget {
     }
 
     final hour = DateTime.now().hour;
-    final allHabitsDone = controller.totalHabitsToday > 0 &&
-        controller.pendingHabitsCount == 0;
+    final allHabitsDone =
+        controller.totalHabitsToday > 0 && controller.pendingHabitsCount == 0;
 
     if (hour >= 22 || hour < 6) {
       return (icon: Icons.bedtime_rounded, color: const Color(0xFF818CF8));
     }
 
     if (controller.limit > 0 && controller.spent > controller.limit) {
-      return (icon: Icons.priority_high_rounded, color: const Color(0xFFF97316));
+      return (
+        icon: Icons.priority_high_rounded,
+        color: const Color(0xFFF97316),
+      );
     }
 
     if (allHabitsDone) {
@@ -55,8 +58,8 @@ class PetDialogueBubble extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
           decoration: BoxDecoration(
-            color: KwallTheme.surface,
-            borderRadius: BorderRadius.circular(14),
+            color: KnotesTheme.surface,
+            borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.14),
@@ -69,15 +72,11 @@ class PetDialogueBubble extends StatelessWidget {
               width: 1.5,
             ),
           ),
-          child: Icon(
-            emotion.icon,
-            size: 16,
-            color: emotion.color,
-          ),
+          child: Icon(emotion.icon, size: 16, color: emotion.color),
         ),
         CustomPaint(
           size: const Size(8, 5),
-          painter: _BubblePointerPainter(color: KwallTheme.surface),
+          painter: _BubblePointerPainter(color: KnotesTheme.surface),
         ),
       ],
     );
@@ -102,5 +101,6 @@ class _BubblePointerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BubblePointerPainter oldDelegate) => color != oldDelegate.color;
+  bool shouldRepaint(_BubblePointerPainter oldDelegate) =>
+      color != oldDelegate.color;
 }

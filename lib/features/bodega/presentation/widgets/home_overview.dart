@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../../../core/widgets/financial_balance_card.dart';
-import '../../view_models/home_view_model.dart';
-import 'pet_hero_card.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/financial_balance_card.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/features/bodega/presentation/widgets/pet_hero_card.dart';
 
 class HomeOverview extends StatelessWidget {
   final HomeViewModel controller;
@@ -33,9 +33,11 @@ class HomeOverview extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Bienvenido',
-                style: KwallTheme.fontTitle.copyWith(fontSize: 26),
+              Expanded(
+                child: Text(
+                  'Bienvenido',
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 26),
+                ),
               ),
               if (onSettings != null)
                 IconButton.filledTonal(
@@ -48,10 +50,7 @@ class HomeOverview extends StatelessWidget {
         ),
 
         // 1. CARD PRINCIPAL: LA MASCOTA VIRTUAL
-        PetHeroCard(
-          controller: controller,
-          onHoldChanged: onPetHoldChanged,
-        ),
+        PetHeroCard(controller: controller, onHoldChanged: onPetHoldChanged),
         const SizedBox(height: 16),
 
         // 2. Financial Balance Card

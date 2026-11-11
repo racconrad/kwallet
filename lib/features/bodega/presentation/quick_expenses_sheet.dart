@@ -1,14 +1,17 @@
-import '../../../core/models/currency_conversion.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../../../core/widgets/pet_visual_toast.dart';
-import '../models/quick_expense.dart';
-import '../view_models/home_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/pet_visual_toast.dart';
+import 'package:knotes/features/bodega/models/quick_expense.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
+import 'package:knotes/core/theme/account_visuals.dart';
+import 'package:knotes/core/theme/category_visuals.dart';
 
 class QuickExpensesSheet extends StatefulWidget {
   final HomeViewModel controller;
@@ -53,7 +56,7 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
       PetVisualToast.show(
         context,
         type: PetVisualToastType.expense,
-        badgeValue: '-${KwallTheme.formatCurrency(qe.amount, currency)}',
+        badgeValue: '-${KnotesTheme.formatCurrency(qe.amount, currency)}',
       );
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,11 +64,11 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
           duration: const Duration(seconds: 3),
           behavior: SnackBarBehavior.floating,
           content: Text(
-            '${qe.title} (${KwallTheme.formatCurrency(qe.amount, currency)}) registrado',
+            '${qe.title} (${KnotesTheme.formatCurrency(qe.amount, currency)}) registrado',
           ),
           action: SnackBarAction(
             label: 'Deshacer',
-            textColor: KwallTheme.accent,
+            textColor: KnotesTheme.accent,
             onPressed: () => _controller.voidMovement(record),
           ),
         ),
@@ -116,17 +119,26 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
+                  borderRadius: dropdownRadius,
+                  isExpanded: true,
+                  icon: const Icon(Icons.expand_more_rounded),
                   initialValue: categoryId,
                   decoration: const InputDecoration(labelText: 'Categoría'),
                   items: [
                     for (final cat in _controller.categories.values)
-                      DropdownMenuItem(value: cat.id, child: Text(cat.name)),
+                      DropdownMenuItem(
+                        value: cat.id,
+                        child: MenuLabel(cat.iconData, cat.name),
+                      ),
                   ],
                   onChanged: (val) =>
                       setDialogState(() => categoryId = val ?? categoryId),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String?>(
+                  borderRadius: dropdownRadius,
+                  isExpanded: true,
+                  icon: const Icon(Icons.expand_more_rounded),
                   initialValue: accountId,
                   decoration: const InputDecoration(
                     labelText: 'Cuenta a debitar',
@@ -134,10 +146,20 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
                   items: [
                     const DropdownMenuItem(
                       value: null,
-                      child: Text('Cuenta principal'),
+                      child: MenuLabel(
+                        Icons.star_outline_rounded,
+                        'Cuenta principal',
+                      ),
                     ),
                     for (final acc in _controller.accounts)
-                      DropdownMenuItem(value: acc.id, child: Text(acc.name)),
+                      DropdownMenuItem(
+                        value: acc.id,
+                        child: MenuLabel(
+                          acc.iconData,
+                          acc.name,
+                          color: acc.displayColor,
+                        ),
+                      ),
                   ],
                   onChanged: (val) => setDialogState(() => accountId = val),
                 ),
@@ -154,7 +176,7 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
                 },
                 child: Text(
                   'Eliminar',
-                  style: TextStyle(color: KwallTheme.expenseRed),
+                  style: TextStyle(color: KnotesTheme.expenseRed),
                 ),
               ),
             TextButton(
@@ -199,12 +221,12 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.flash_on_rounded, color: KwallTheme.accent),
+              Icon(Icons.flash_on_rounded, color: KnotesTheme.accent),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Gastos rápidos',
-                  style: KwallTheme.fontTitle.copyWith(fontSize: 20),
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 20),
                 ),
               ),
               IconButton.filledTonal(
@@ -221,7 +243,7 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
               child: Center(
                 child: Text(
                   'No hay gastos rápidos configurados.',
-                  style: TextStyle(color: KwallTheme.textSecondary),
+                  style: TextStyle(color: KnotesTheme.textSecondary),
                 ),
               ),
             )
@@ -234,7 +256,7 @@ class _QuickExpensesSheetState extends State<QuickExpensesSheet> {
                   InputChip(
                     avatar: Icon(_iconFor(item.iconKey), size: 16),
                     label: Text(
-                      '${item.title} (${KwallTheme.formatCurrency(item.amount, _controller.currency)})',
+                      '${item.title} (${KnotesTheme.formatCurrency(item.amount, _controller.currency)})',
                     ),
                     onPressed: () => _execute(item),
                     onDeleted: () => _openEditor(item),

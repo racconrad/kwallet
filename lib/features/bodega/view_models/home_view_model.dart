@@ -1,22 +1,25 @@
-import '../../../core/models/currency_conversion.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
 
 import 'dart:math' as math;
 
-import '../../../core/mvvm/view_model.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
 
 import 'package:uuid/uuid.dart';
 
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/services/device_files.dart';
-import '../../../core/services/widget_sync_service.dart';
-import '../../journal/models/journal_models.dart';
-import '../models/account.dart';
-import '../models/budget_model.dart';
-import '../models/category_model.dart';
-import '../models/finance_overview.dart';
-import '../models/planned_expense.dart';
-import '../models/quick_expense.dart';
-import '../models/transaction_record.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/core/services/notification_service.dart';
+import 'package:knotes/core/services/reminder_check_in_sync.dart';
+import 'package:knotes/core/services/widget_sync_service.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/budget_model.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/models/quick_expense.dart';
+import 'package:knotes/core/theme/knotes_palette.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
 
 class HomeViewModel extends ViewModel {
   final FinanceRepository finance;
@@ -47,6 +50,9 @@ class HomeViewModel extends ViewModel {
   List<PlannedExpense> _plans = const [];
   List<PersonalNote> _notes = const [];
   List<Habit> _habits = const [];
+  List<Goal> _goals = const [];
+  bool _snapshotRunning = false;
+  late final _reminderCheckIns = ReminderCheckInSync(journal);
   List<QuickExpense> _quickExpenses = const [];
   Map<String, String> _settings = const {};
   Map<String, double> _rates = const {};
@@ -62,6 +68,9 @@ class HomeViewModel extends ViewModel {
   List<QuickExpense> get quickExpenses => _quickExpenses;
   List<PersonalNote> get notes => _notes;
   List<Habit> get habits => _habits;
+  List<Goal> get goals => _goals;
+  List<Goal> get activeGoals =>
+      _goals.where((g) => !g.isExpired(DateTime.now())).toList();
   Map<String, String> get settings => _settings;
   Map<String, double> get rates => _rates;
   BudgetModel? get budget => _budget;
@@ -191,7 +200,7 @@ class HomeViewModel extends ViewModel {
   List<({PersonalNote note, int index, NoteItem item})> get pendingTasks {
     final result = <({PersonalNote note, int index, NoteItem item})>[];
     for (final note in _notes) {
-      if (note.kind == 'list') {
+      if (note.items.isNotEmpty) {
         for (var i = 0; i < note.items.length; i++) {
           if (!note.items[i].done) {
             result.add((note: note, index: i, item: note.items[i]));
@@ -270,6 +279,9 @@ class HomeViewModel extends ViewModel {
     return ok;
   }
 
+  Future<bool> markGoal(Goal goal, [int delta = 1]) =>
+      perform(() => journal.markGoal(goal.id, delta: delta));
+
   Future<bool> checkNote(PersonalNote note, int index, bool done) async {
     final ok = await perform(
       () => journal.setNoteItem(
@@ -335,7 +347,7 @@ class HomeViewModel extends ViewModel {
       petPose: _petPose,
       petMood: _petMood,
       petFacingRight: _petFacingRight,
-      themePalette: _settings['palette'] ?? 'forest',
+      themePalette: _settings['palette'] ?? KnotesPalette.fallback,
       widgetBgMode: bgMode,
       widgetBgColor: bgColor,
     );
@@ -344,6 +356,7 @@ class HomeViewModel extends ViewModel {
   Future<void> load() async {
     final version = beginRequest();
     try {
+      await _reminderCheckIns.sync();
       final pendingAffection =
           await WidgetSyncService.consumePendingAffection();
       if (pendingAffection > 0) {
@@ -373,22 +386,7 @@ class HomeViewModel extends ViewModel {
       final habits = await journal.getHabits();
       final quickExpenses = await finance.getQuickExpenses();
       final spent = await finance.getPeriodSpending(now);
-      for (final account in accounts) {
-        CurrencyConversion.convert(
-          account.balance,
-          from: account.currency,
-          to: settings['currency'] ?? '\$',
-          rates: rates,
-          dominantCurrency: settings['currency'] ?? '\$',
-        );
-        CurrencyConversion.convert(
-          account.minimumBalance,
-          from: account.currency,
-          to: settings['currency'] ?? '\$',
-          rates: rates,
-          dominantCurrency: settings['currency'] ?? '\$',
-        );
-      }
+      final goals = await journal.getGoals();
       if (!isCurrent(version)) return;
       _reward = _loaded ? math.max(0, xp - _xp) : 0;
       _accountCurrencies = Map.unmodifiable({
@@ -412,6 +410,7 @@ class HomeViewModel extends ViewModel {
       _spent = Map.unmodifiable(spent);
       _notes = List.unmodifiable(notes);
       _habits = List.unmodifiable(habits);
+      _goals = List.unmodifiable(goals);
       _quickExpenses = List.unmodifiable(quickExpenses);
       _xp = xp;
       _loaded = true;
@@ -419,6 +418,22 @@ class HomeViewModel extends ViewModel {
 
       changed();
       _syncWidget();
+      NotificationService.syncReminders(
+        settings: settings,
+        habits: habits,
+        goals: goals,
+        plans: upcomingPlans,
+        accountCurrencies: _accountCurrencies,
+      ).ignore();
+      if (!_snapshotRunning && settings['auto_backup'] != 'false') {
+        _snapshotRunning = true;
+        // The repository checks the day; only overlapping attempts are skipped.
+        preferences
+            .ensureDailySnapshot()
+            .catchError((_) => false)
+            .whenComplete(() => _snapshotRunning = false)
+            .ignore();
+      }
     } catch (e) {
       if (isCurrent(version)) {
         _reward = 0;
@@ -432,7 +447,7 @@ class HomeViewModel extends ViewModel {
         final errStr = e.toString().toLowerCase();
         if (errStr.contains('no es compatible') ||
             errStr.contains('incompatible')) {
-          error = 'Versión no compatible con tu app actual. Requiere una versión más reciente de kwall.';
+          error = 'Versión no compatible con tu app actual. Requiere una versión más reciente de knotes.';
         } else if (errStr.contains('corrupt') ||
             errStr.contains('databaseexception') ||
             errStr.contains('malformed') ||
@@ -464,8 +479,7 @@ class HomeViewModel extends ViewModel {
     final picker = files ?? NativeDeviceFiles();
     final content = await picker.pickBackup();
     if (content == null || content.trim().isEmpty) return;
-    await preferences.repairOrResetDatabase();
-    await preferences.importFullDataFromJson(content);
+    await preferences.importRecoveryBackup(content);
     await load();
   });
 

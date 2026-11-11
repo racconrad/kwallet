@@ -1,6 +1,6 @@
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../models/spending_summary.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/features/bodega/models/spending_summary.dart';
 
 class StatisticsViewModel extends ViewModel {
   final FinanceRepository repository;

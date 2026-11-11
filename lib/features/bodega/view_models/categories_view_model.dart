@@ -1,8 +1,8 @@
 import 'package:uuid/uuid.dart';
 
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../models/category_model.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
 
 class CategoriesViewModel extends ViewModel {
   final FinanceRepository repository;

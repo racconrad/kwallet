@@ -1,12 +1,12 @@
-import '../../../../core/theme/category_visuals.dart';
+import 'package:knotes/core/theme/category_visuals.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../models/category_model.dart';
-import '../../models/transaction_record.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
 
 class MovementTile extends StatelessWidget {
   final TransactionRecord tx;
@@ -26,15 +26,15 @@ class MovementTile extends StatelessWidget {
     leading: Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: KwallTheme.accentLight,
-        borderRadius: BorderRadius.circular(14),
+        color: KnotesTheme.accentLight,
+        borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
       ),
       child: Icon(
         tx.isTransfer
             ? Icons.swap_horiz_rounded
             : categories[tx.categoryId]?.iconData ??
                   Icons.receipt_long_outlined,
-        color: KwallTheme.accent,
+        color: KnotesTheme.accent,
       ),
     ),
     title: Text(
@@ -56,12 +56,12 @@ class MovementTile extends StatelessWidget {
                   ? '-'
                   : tx.isPositive
                   ? '+'
-                  : ''}${KwallTheme.formatCurrency(tx.amount, tx.currency ?? currency)}',
+                  : ''}${KnotesTheme.formatCurrency(tx.amount, tx.currency ?? currency)}',
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: tx.isNegative
-                    ? KwallTheme.expenseRed
-                    : KwallTheme.incomeGreen,
+                    ? KnotesTheme.expenseRed
+                    : KnotesTheme.incomeGreen,
                 fontWeight: FontWeight.w700,
               ),
             ),

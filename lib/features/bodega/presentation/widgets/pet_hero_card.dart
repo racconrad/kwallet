@@ -4,13 +4,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/models/pet_species.dart';
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../../../core/widgets/kitty_companion.dart';
-import '../../../../core/widgets/pet_visual_toast.dart';
-import '../../view_models/home_view_model.dart';
-import 'pet_dialogue_bubble.dart';
+import 'package:knotes/core/models/pet_species.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
+import 'package:knotes/core/widgets/pet_visual_toast.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/features/bodega/presentation/widgets/pet_dialogue_bubble.dart';
+
+part 'pet_hero_stage.dart';
 
 class PetHeroCard extends StatefulWidget {
   final HomeViewModel controller;
@@ -270,6 +272,9 @@ class _PetHeroCardState extends State<PetHeroCard>
     super.dispose();
   }
 
+  // Lets the part-file extension rebuild without touching protected setState.
+  void _update(VoidCallback change) => setState(change);
+
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
@@ -323,375 +328,64 @@ class _PetHeroCardState extends State<PetHeroCard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+              Chip(
+                avatar: Icon(
+                  Icons.pets_rounded,
+                  size: 14,
+                  color: KnotesTheme.accent,
                 ),
-                decoration: BoxDecoration(
-                  color: KwallTheme.surfaceContainer.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: KwallTheme.accent.withValues(alpha: 0.25),
+                label: Text(
+                  petName.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: KnotesTheme.textPrimary,
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.pets_rounded,
-                      size: 14,
-                      color: KwallTheme.accent,
-                    ),
-                    const SizedBox(width: 7),
-                    Text(
-                      petName.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                        color: KwallTheme.textPrimary,
-                      ),
-                    ),
-                  ],
+                backgroundColor: KnotesTheme.surfaceContainer.withValues(
+                  alpha: 0.5,
                 ),
               ),
-
-              // Growth stage and level chip
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
+              Chip(
+                avatar: Icon(
+                  growthStage == PetGrowthStage.master
+                      ? Icons.stars_rounded
+                      : Icons.auto_awesome_rounded,
+                  color: KnotesTheme.accent,
+                  size: 13,
                 ),
-                decoration: BoxDecoration(
-                  color: KwallTheme.accentLight,
-                  borderRadius: BorderRadius.circular(16),
+                label: Text(
+                  '${growthStage.title} • Nv. $level',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: KnotesTheme.accent,
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      growthStage == PetGrowthStage.master
-                          ? Icons.stars_rounded
-                          : Icons.auto_awesome_rounded,
-                      color: KwallTheme.accent,
-                      size: 13,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${growthStage.title} • Nv. $level',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: KwallTheme.accent,
-                      ),
-                    ),
-                  ],
-                ),
+                backgroundColor: KnotesTheme.accentLight,
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final stageWidth = constraints.maxWidth;
-              const stageHeight = 185.0;
-              return Container(
-                height: stageHeight,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      KwallTheme.surfaceContainer.withValues(alpha: 0.2),
-                      KwallTheme.accentLight.withValues(alpha: 0.35),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: KwallTheme.border.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: 16,
-                      child: Container(
-                        height: 2,
-                        decoration: BoxDecoration(
-                          color: KwallTheme.accent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-
-                    // Dynamic shadow
-                    AnimatedAlign(
-                      duration: _isGrabbed
-                          ? Duration.zero
-                          : const Duration(milliseconds: 320),
-                      curve: Curves.easeOutCubic,
-                      alignment: Alignment(_xPos, 0.86),
-                      child: Container(
-                        width: shadowWidth,
-                        height: shadowHeight,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: shadowOpacity),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-
-                    // Integrated pet dialogue bubble following the pet further away
-                    AnimatedAlign(
-                      duration: _isGrabbed
-                          ? Duration.zero
-                          : const Duration(milliseconds: 320),
-                      curve: Curves.easeOutCubic,
-                      alignment: Alignment(_xPos, _yPos - 0.76),
-                      child: IgnorePointer(
-                        child: PetDialogueBubble(
-                          controller: controller,
-                          isPurring: _isCelebrating,
-                          isAnnoyed: _isAnnoyed,
-                        ),
-                      ),
-                    ),
-
-                    AnimatedAlign(
-                      duration: _isGrabbed
-                          ? Duration.zero
-                          : const Duration(milliseconds: 450),
-                      curve: _isGrabbed ? Curves.linear : Curves.bounceOut,
-                      alignment: Alignment(_xPos, _yPos),
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _giveAffection,
-                        onPanStart: (details) {
-                          HapticFeedback.lightImpact();
-                          widget.onHoldChanged?.call(true);
-                          _roamTimer?.cancel();
-                          _walkStepTimer?.cancel();
-                          _annoyedTimer?.cancel();
-                          setState(() {
-                            _isGrabbed = true;
-                            _isAnnoyed = false;
-                          });
-                        },
-                        onPanUpdate: (details) {
-                          if (stageWidth <= 0) return;
-                          final dx = details.delta.dx / (stageWidth * 0.45);
-                          final dy = details.delta.dy / (stageHeight * 0.45);
-                          setState(() {
-                            _xPos = (_xPos + dx).clamp(-0.92, 0.92);
-                            _yPos = (_yPos + dy).clamp(-0.95, _groundY);
-                            if (details.delta.dx > 0.3) _movingRight = true;
-                            if (details.delta.dx < -0.3) _movingRight = false;
-                          });
-                        },
-                        onPanEnd: (details) {
-                          final wasLifted =
-                              _yPos < 0.40 ||
-                              details.velocity.pixelsPerSecond.distance > 80;
-                          _handlePetDropped(wasLifted);
-                        },
-                        onPanCancel: () {
-                          widget.onHoldChanged?.call(false);
-                          _handlePetDropped(false);
-                        },
-                        child: AnimatedScale(
-                          duration: const Duration(milliseconds: 160),
-                          scale: (_isGrabbed ? 1.10 : 1.0) * growthStage.scale,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            clipBehavior: Clip.none,
-                            children: [
-                              Transform.flip(
-                                flipX: !_movingRight,
-                                child: KittyCompanionWidget(
-                                  size: 92,
-                                  reward: controller.xp,
-                                  settings: controller.settings,
-                                  activity: effectiveActivity,
-                                  onPet: _giveAffection,
-                                  onActivityChanged: (activity) {
-                                    _spriteActivity = activity;
-                                    controller.syncPetState(
-                                      activity.name,
-                                      _isAnnoyed
-                                          ? 'annoyed'
-                                          : _isCelebrating || allHabitsDone
-                                          ? 'happy'
-                                          : 'normal',
-                                      _movingRight,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Affection particles
-                    if (_particleAnim.isAnimating && _particles.isNotEmpty)
-                      AnimatedAlign(
-                        duration: Duration.zero,
-                        alignment: Alignment(_xPos, _yPos - 0.2),
-                        child: SizedBox(
-                          width: 110,
-                          height: 130,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            clipBehavior: Clip.none,
-                            children: [
-                              for (final p in _particles)
-                                Builder(
-                                  builder: (context) {
-                                    final t = (_particleAnim.value - p.delay)
-                                        .clamp(0.0, 1.0);
-                                    if (t <= 0.0) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    final yProgress = Curves.easeOutCubic
-                                        .transform(t);
-                                    final opacity = (1.0 - t).clamp(0.0, 1.0);
-                                    return Positioned(
-                                      bottom: yProgress * 65 + 30,
-                                      left: 55 + p.x - 10,
-                                      child: Opacity(
-                                        opacity: opacity,
-                                        child: Transform.scale(
-                                          scale:
-                                              p.scale * (0.8 + 0.4 * yProgress),
-                                          child: Icon(
-                                            p.icon,
-                                            size: 17,
-                                            color: p.color,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-
-                              // Floating +2 XP badge
-                              if (_earnedXpThisPet)
-                                Builder(
-                                  builder: (context) {
-                                    final t = _particleAnim.value.clamp(
-                                      0.0,
-                                      1.0,
-                                    );
-                                    final yProgress = Curves.easeOutCubic
-                                        .transform(t);
-                                    final opacity = (1.0 - t * 0.9).clamp(
-                                      0.0,
-                                      1.0,
-                                    );
-                                    return Positioned(
-                                      top: 15 - (yProgress * 25),
-                                      child: Opacity(
-                                        opacity: opacity,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: KwallTheme.accent,
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: KwallTheme.accent
-                                                    .withValues(alpha: 0.4),
-                                                blurRadius: 8,
-                                                spreadRadius: 1,
-                                              ),
-                                            ],
-                                          ),
-                                          child: Text(
-                                            '+2 XP',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w900,
-                                              color: KwallTheme.onAccent,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    // Annoyance cross particles
-                    if (_annoyedAnim.isAnimating &&
-                        _annoyedParticles.isNotEmpty)
-                      AnimatedAlign(
-                        duration: Duration.zero,
-                        alignment: Alignment(_xPos, _yPos - 0.2),
-                        child: SizedBox(
-                          width: 110,
-                          height: 130,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            clipBehavior: Clip.none,
-                            children: [
-                              for (final p in _annoyedParticles)
-                                Builder(
-                                  builder: (context) {
-                                    final t = (_annoyedAnim.value - p.delay)
-                                        .clamp(0.0, 1.0);
-                                    if (t <= 0.0) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    final yProgress = Curves.easeOutCubic
-                                        .transform(t);
-                                    final opacity = (1.0 - t).clamp(0.0, 1.0);
-                                    return Positioned(
-                                      bottom: yProgress * 65 + 30,
-                                      left: 55 + p.x - 10,
-                                      child: Opacity(
-                                        opacity: opacity,
-                                        child: Transform.rotate(
-                                          angle: p.rotation,
-                                          child: Transform.scale(
-                                            scale:
-                                                p.scale *
-                                                (0.8 + 0.4 * yProgress),
-                                            child: Icon(
-                                              Icons.close_rounded,
-                                              size: 20,
-                                              color: p.color,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
+          _stage(
+            controller: controller,
+            effectiveActivity: effectiveActivity,
+            growthStage: growthStage,
+            allHabitsDone: allHabitsDone,
+            shadowWidth: shadowWidth,
+            shadowHeight: shadowHeight,
+            shadowOpacity: shadowOpacity,
           ),
           const SizedBox(height: 12),
 
@@ -701,25 +395,30 @@ class _PetHeroCardState extends State<PetHeroCard>
             child: LinearProgressIndicator(
               value: xpProgress,
               minHeight: 6,
-              backgroundColor: KwallTheme.border.withValues(alpha: 0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(KwallTheme.accent),
+              backgroundColor: KnotesTheme.border.withValues(alpha: 0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(KnotesTheme.accent),
             ),
           ),
           const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Text(
                 'Nv. $level',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: KwallTheme.accent,
+                  color: KnotesTheme.accent,
                 ),
               ),
               Text(
                 '${100 - xpInCurrentLevel} XP para subir',
-                style: TextStyle(fontSize: 11, color: KwallTheme.textSecondary),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: KnotesTheme.textSecondary,
+                ),
               ),
             ],
           ),

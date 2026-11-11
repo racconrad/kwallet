@@ -1,15 +1,16 @@
 import 'package:uuid/uuid.dart';
 
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/models/amount.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../models/account.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/models/amount.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/features/bodega/models/account.dart';
 
 class AccountEditorViewModel extends ViewModel {
   final FinanceRepository repository;
   final SettingsRepository? preferences;
   List<String> currencyOptions = const [];
   Map<String, String> currencyNames = const {};
+  bool currenciesReady = false;
 
   AccountEditorViewModel(this.repository, [this.preferences]);
 
@@ -30,11 +31,25 @@ class AccountEditorViewModel extends ViewModel {
         ...refCurrencies,
         ...userCurrencies.keys,
       }.where((s) => s.trim().isNotEmpty).toList()..sort();
+      currenciesReady = true;
       changed();
     } catch (_) {
       fail('No se pudieron cargar las monedas');
     }
   }
+
+  Future<bool> addCurrency(String symbol, String name) => perform(() async {
+    final prefs = preferences;
+    if (prefs == null || symbol.trim().isEmpty || name.trim().isEmpty) {
+      throw StateError('Escribe el símbolo y nombre de la moneda.');
+    }
+    await prefs.saveUserCurrency(symbol, name);
+    final settings = await prefs.getSettings();
+    if ((settings['currency'] ?? '').isEmpty) {
+      await prefs.saveSettings({'currency': symbol});
+    }
+    await loadCurrencies();
+  });
 
   Future<bool> save({
     Account? original,
@@ -49,6 +64,9 @@ class AccountEditorViewModel extends ViewModel {
     String targetText = '0',
     bool? excludeFromAvailable,
   }) {
+    if (currency.trim().isEmpty) {
+      return Future.value(fail('Añade la moneda de esta cuenta.'));
+    }
     final balance = parseAmount(balanceText);
     final minimum = parseAmount(minimumText);
     final target = parseAmount(targetText);

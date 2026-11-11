@@ -1,4 +1,4 @@
-import 'transaction_record.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
 
 class TransactionFilter {
   final String? accountId;

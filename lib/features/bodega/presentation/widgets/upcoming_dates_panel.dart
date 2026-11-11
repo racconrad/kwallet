@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../models/planned_expense.dart';
-import '../../view_models/home_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
 
 class UpcomingDatesPanel extends StatelessWidget {
   final HomeViewModel controller;
@@ -31,12 +31,12 @@ class UpcomingDatesPanel extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: KwallTheme.accentLight,
+                  color: KnotesTheme.accentLight,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.event_repeat_rounded,
-                  color: KwallTheme.accent,
+                  color: KnotesTheme.accent,
                   size: 20,
                 ),
               ),
@@ -47,15 +47,15 @@ class UpcomingDatesPanel extends StatelessWidget {
                   children: [
                     Text(
                       'Fechas importantes y pagos',
-                      style: KwallTheme.fontTitle.copyWith(fontSize: 18),
+                      style: KnotesTheme.fontTitle.copyWith(fontSize: 18),
                     ),
                     Text(
                       plans.isEmpty
                           ? 'Sin compromisos próximos'
-                          : '${KwallTheme.formatCurrency(controller.weeklyCommitments, controller.currency)} previstos esta semana',
+                          : '${KnotesTheme.formatCurrency(controller.weeklyCommitments, controller.currency)} previstos esta semana',
                       style: TextStyle(
                         fontSize: 12,
-                        color: KwallTheme.textSecondary,
+                        color: KnotesTheme.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -77,7 +77,7 @@ class UpcomingDatesPanel extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.event_available_outlined,
-                    color: KwallTheme.accent,
+                    color: KnotesTheme.accent,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
@@ -86,7 +86,7 @@ class UpcomingDatesPanel extends StatelessWidget {
                       'No tienes compromisos próximos en los siguientes 30 días.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: KwallTheme.textSecondary,
+                        color: KnotesTheme.textSecondary,
                       ),
                     ),
                   ),
@@ -129,12 +129,12 @@ class UpcomingDatesPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: KwallTheme.surfaceContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(14),
+        color: KnotesTheme.surfaceContainer.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
         border: Border.all(
           color: diff == 0
-              ? KwallTheme.expenseRed.withValues(alpha: 0.4)
-              : KwallTheme.border.withValues(alpha: 0.4),
+              ? KnotesTheme.expenseRed.withValues(alpha: 0.4)
+              : KnotesTheme.border.withValues(alpha: 0.4),
         ),
       ),
       child: Row(
@@ -143,8 +143,8 @@ class UpcomingDatesPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: diff == 0
-                  ? KwallTheme.expenseRed.withValues(alpha: 0.15)
-                  : KwallTheme.accentLight,
+                  ? KnotesTheme.expenseRed.withValues(alpha: 0.15)
+                  : KnotesTheme.accentLight,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -152,7 +152,7 @@ class UpcomingDatesPanel extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: diff == 0 ? KwallTheme.expenseRed : KwallTheme.accent,
+                color: diff == 0 ? KnotesTheme.expenseRed : KnotesTheme.accent,
               ),
             ),
           ),
@@ -174,7 +174,7 @@ class UpcomingDatesPanel extends StatelessWidget {
                   plan.recurrenceLabel,
                   style: TextStyle(
                     fontSize: 11,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                   ),
                 ),
               ],
@@ -184,7 +184,7 @@ class UpcomingDatesPanel extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.star_rounded, color: KwallTheme.accent, size: 16),
+                Icon(Icons.star_rounded, color: KnotesTheme.accent, size: 16),
                 const SizedBox(width: 4),
                 const Text(
                   'Especial',
@@ -194,11 +194,8 @@ class UpcomingDatesPanel extends StatelessWidget {
             )
           else
             Text(
-              KwallTheme.formatCurrency(plan.amount, controller.currency),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
+              KnotesTheme.formatCurrency(plan.amount, controller.currency),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
         ],
       ),

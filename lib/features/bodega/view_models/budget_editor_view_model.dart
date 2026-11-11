@@ -1,7 +1,7 @@
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/models/amount.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../models/finance_overview.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/models/amount.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
 
 class BudgetEditorViewModel extends ViewModel {
   final FinanceRepository repository;

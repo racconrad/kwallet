@@ -2,12 +2,12 @@ import 'dart:collection';
 
 import 'package:uuid/uuid.dart';
 
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/models/amount.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../models/account.dart';
-import '../models/category_model.dart';
-import '../models/transaction_record.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/models/amount.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
 
 typedef MovementInput = ({
   String amount,

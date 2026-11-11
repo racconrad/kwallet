@@ -1,17 +1,19 @@
-import '../../../core/theme/category_visuals.dart';
+import 'package:knotes/core/theme/category_visuals.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/movements_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../models/account.dart';
-import '../models/category_model.dart';
-import '../models/monthly_movement_summary.dart';
-import '../models/transaction_record.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/bodega/view_models/movements_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/monthly_movement_summary.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
+import 'package:knotes/core/theme/account_visuals.dart';
 
 class MovementsScreen extends StatefulWidget {
   final String currency;
@@ -27,6 +29,7 @@ class _MovementsScreenState
       dependencies.movements();
   final _search = TextEditingController();
   final _scroll = ScrollController();
+  bool _confirmingVoid = false;
   List<Account> get _accounts => model.accounts;
   Map<String, CategoryModel> get _categories => model.categories;
   List<TransactionRecord> get _records => model.records;
@@ -63,6 +66,44 @@ class _MovementsScreenState
   }
 
   Future<void> _load({bool next = false}) => model.load(next: next);
+
+  Future<void> _voidMovement(
+    TransactionRecord tx,
+    BuildContext sheetContext,
+  ) async {
+    if (_confirmingVoid || model.busy || _archived) return;
+    _confirmingVoid = true;
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Anular movimiento'),
+          content: const Text(
+            'El saldo se corregirá y el registro quedará en el archivo de anulaciones.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Anular'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      final success = await model.voidMovement(tx);
+      if (!mounted) return;
+      if (sheetContext.mounted) Navigator.pop(sheetContext);
+      if (!success) {
+        showFailure(context, 'No se pudo anular el movimiento. Reintenta.');
+      }
+    } finally {
+      _confirmingVoid = false;
+    }
+  }
 
   Future<void> _date(bool start) async {
     final date = await showDatePicker(
@@ -101,6 +142,7 @@ class _MovementsScreenState
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        borderRadius: dropdownRadius,
                         icon: const Icon(Icons.expand_more_rounded),
                         initialValue: _account,
                         isExpanded: true,
@@ -108,14 +150,18 @@ class _MovementsScreenState
                         items: [
                           const DropdownMenuItem<String>(
                             value: null,
-                            child: Text('Todas'),
+                            child: MenuLabel(
+                              Icons.all_inclusive_rounded,
+                              'Todas',
+                            ),
                           ),
                           for (final a in _accounts)
                             DropdownMenuItem(
                               value: a.id,
-                              child: Text(
+                              child: MenuLabel(
+                                a.iconData,
                                 a.name,
-                                overflow: TextOverflow.ellipsis,
+                                color: a.displayColor,
                               ),
                             ),
                         ],
@@ -125,31 +171,31 @@ class _MovementsScreenState
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        borderRadius: dropdownRadius,
                         icon: const Icon(Icons.expand_more_rounded),
                         initialValue: _type,
                         isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Tipo'),
-                        items: const [
-                          DropdownMenuItem<String>(
-                            value: null,
-                            child: Text('Todos'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'expense',
-                            child: Text('Gastos'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'income',
-                            child: Text('Ingresos'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'transfer',
-                            child: Text('Transferencias'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'adjustment',
-                            child: Text('Ajustes de saldo'),
-                          ),
+                        items: [
+                          for (final (value, icon, text) in [
+                            (null, Icons.all_inclusive_rounded, 'Todos'),
+                            ('expense', Icons.south_west_rounded, 'Gastos'),
+                            ('income', Icons.north_east_rounded, 'Ingresos'),
+                            (
+                              'transfer',
+                              Icons.swap_horiz_rounded,
+                              'Transferencias',
+                            ),
+                            (
+                              'adjustment',
+                              Icons.tune_rounded,
+                              'Ajustes de saldo',
+                            ),
+                          ])
+                            DropdownMenuItem<String>(
+                              value: value,
+                              child: MenuLabel(icon, text),
+                            ),
                         ],
                         onChanged: model.selectType,
                       ),
@@ -194,33 +240,33 @@ class _MovementsScreenState
                 if (_archived)
                   Text(
                     'Estos importes están anulados: no afectan tus saldos ni presupuestos.',
-                    style: TextStyle(color: KwallTheme.textSecondary),
+                    style: TextStyle(color: KnotesTheme.textSecondary),
                   ),
                 LedgerPanel(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('$_count movimientos', style: KwallTheme.fontTitle),
+                      Text('$_count movimientos', style: KnotesTheme.fontTitle),
                       const SizedBox(height: 8),
                       Text(
-                        'Ingresos  ${KwallTheme.formatCurrency(_income, widget.currency)}',
-                        style: TextStyle(color: KwallTheme.incomeGreen),
+                        'Ingresos  ${KnotesTheme.formatCurrency(_income, widget.currency)}',
+                        style: TextStyle(color: KnotesTheme.incomeGreen),
                       ),
                       Text(
-                        'Gastos  ${KwallTheme.formatCurrency(_expense, widget.currency)}',
-                        style: TextStyle(color: KwallTheme.expenseRed),
+                        'Gastos  ${KnotesTheme.formatCurrency(_expense, widget.currency)}',
+                        style: TextStyle(color: KnotesTheme.expenseRed),
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        'Neto  ${KwallTheme.formatCurrency(_income - _expense, widget.currency)}',
-                        style: KwallTheme.fontTitle,
+                        'Neto  ${KnotesTheme.formatCurrency(_income - _expense, widget.currency)}',
+                        style: KnotesTheme.fontTitle,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Totales de todo el rango. Las transferencias internas no cuentan como ingreso ni gasto.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: KwallTheme.textSecondary,
+                          color: KnotesTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -243,7 +289,7 @@ class _MovementsScreenState
                               dense: true,
                               title: Text(month.month),
                               subtitle: Text(
-                                '+ ${KwallTheme.formatCurrency(month.income, widget.currency)}   − ${KwallTheme.formatCurrency(month.expense, widget.currency)}',
+                                '+ ${KnotesTheme.formatCurrency(month.income, widget.currency)}   − ${KnotesTheme.formatCurrency(month.expense, widget.currency)}',
                               ),
                             );
                           },
@@ -272,7 +318,7 @@ class _MovementsScreenState
                         _records.isEmpty
                             ? 'No hay movimientos con estos filtros.'
                             : 'Fin del historial',
-                        style: TextStyle(color: KwallTheme.textSecondary),
+                        style: TextStyle(color: KnotesTheme.textSecondary),
                       ),
                     ),
             );
@@ -288,7 +334,7 @@ class _MovementsScreenState
                   ? Icons.swap_horiz
                   : _categories[tx.categoryId]?.iconData ??
                         Icons.receipt_long_outlined,
-              color: KwallTheme.accent,
+              color: KnotesTheme.accent,
             ),
             title: Text(
               tx.note.isEmpty
@@ -303,31 +349,31 @@ class _MovementsScreenState
                   ? '-'
                   : tx.isPositive
                   ? '+'
-                  : ''}${KwallTheme.formatCurrency(tx.amount, tx.currency ?? account?.currency ?? widget.currency)}',
+                  : ''}${KnotesTheme.formatCurrency(tx.amount, tx.currency ?? account?.currency ?? widget.currency)}',
               style: TextStyle(
                 color: tx.isNegative
-                    ? KwallTheme.expenseRed
-                    : KwallTheme.incomeGreen,
+                    ? KnotesTheme.expenseRed
+                    : KnotesTheme.incomeGreen,
               ),
             ),
             onTap: () => showModalBottomSheet(
               context: context,
-              builder: (_) => SheetBody(
+              builder: (sheetContext) => SheetBody(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
                       tx.note.isEmpty ? 'Detalle del movimiento' : tx.note,
-                      style: KwallTheme.fontTitle.copyWith(fontSize: 22),
+                      style: KnotesTheme.fontTitle.copyWith(fontSize: 22),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      KwallTheme.formatCurrency(
+                      KnotesTheme.formatCurrency(
                         tx.amount,
                         tx.currency ?? account?.currency ?? widget.currency,
                       ),
-                      style: KwallTheme.fontDisplay.copyWith(fontSize: 30),
+                      style: KnotesTheme.fontDisplay.copyWith(fontSize: 30),
                     ),
                     Text(
                       DateFormat('dd MMMM yyyy · HH:mm', 'es').format(tx.date),
@@ -338,6 +384,19 @@ class _MovementsScreenState
                       Text(
                         'Destino: ${_accounts.where((a) => a.id == tx.toAccountId).firstOrNull?.name ?? 'Cuenta archivada'}',
                       ),
+                    if (!_archived) ...[
+                      const SizedBox(height: 16),
+                      AnimatedBuilder(
+                        animation: model,
+                        builder: (_, _) => TextButton.icon(
+                          onPressed: model.busy
+                              ? null
+                              : () => _voidMovement(tx, sheetContext),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text('Anular movimiento'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

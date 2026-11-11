@@ -1,5 +1,5 @@
-import 'package:kwall/features/bodega/models/planned_expense.dart';
-import 'package:kwall/features/bodega/view_models/planning_view_model.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/view_models/planning_view_model.dart';
 
 import 'dart:convert';
 import 'dart:io';
@@ -10,22 +10,22 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kwall/app/app_dependencies.dart';
-import 'package:kwall/app/app_scope.dart';
-import 'package:kwall/core/database/database_backup.dart';
-import 'package:kwall/core/database/database_service.dart';
-import 'package:kwall/core/models/currency_conversion.dart';
-import 'package:kwall/core/services/device_files.dart';
-import 'package:kwall/core/services/widget_pet_renderer.dart';
-import 'package:kwall/core/theme/kwall_theme.dart';
-import 'package:kwall/features/bodega/models/account.dart';
-import 'package:kwall/features/bodega/models/transaction_filter.dart';
-import 'package:kwall/features/bodega/models/transaction_record.dart';
-import 'package:kwall/features/bodega/presentation/add_account_dialog.dart';
-import 'package:kwall/features/bodega/presentation/finances_screen.dart';
-import 'package:kwall/features/bodega/presentation/statistics_screen.dart';
-import 'package:kwall/features/bodega/view_models/account_editor_view_model.dart';
-import 'package:kwall/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/app/app_scope.dart';
+import 'package:knotes/core/database/database_backup.dart';
+import 'package:knotes/core/database/database_service.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/core/services/widget_pet_renderer.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/transaction_filter.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/features/bodega/presentation/add_account_dialog.dart';
+import 'package:knotes/features/bodega/presentation/finances_screen.dart';
+import 'package:knotes/features/bodega/presentation/statistics_screen.dart';
+import 'package:knotes/features/bodega/view_models/account_editor_view_model.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 Account account(
@@ -376,7 +376,7 @@ void main() {
   });
 
   test('v6 migration preserves money and defaults goal; v6 backups remain restorable', () async {
-    final dir = await Directory.systemTemp.createTemp('kwall-v6-goals-');
+    final dir = await Directory.systemTemp.createTemp('knotes-v6-goals-');
     addTearDown(() => dir.delete(recursive: true));
     final path = '${dir.path}/v6.db';
     final old = DatabaseService.atPath(
@@ -457,8 +457,8 @@ void main() {
   );
 
   test('Currency displays symbols without changing conversion identities', () {
-    expect(KwallTheme.formatCurrency(12, 'NIO'), 'C\$12.00');
-    expect(KwallTheme.formatCurrency(-12, 'nio'), '-C\$12.00');
+    expect(KnotesTheme.formatCurrency(12, 'NIO'), 'C\$12.00');
+    expect(KnotesTheme.formatCurrency(-12, 'nio'), '-C\$12.00');
     expect(
       CurrencyConversion.label('NIO', {'C\$': 'Córdoba de Nicaragua'}),
       'C\$ Córdoba de Nicaragua',
@@ -483,8 +483,8 @@ void main() {
     );
     expect(pack!.keys, containsAll(['idle', 'sleep', 'celebrate', 'grabbed']));
     final image = await tester.runAsync(() => decode(pack['idle']!));
-    expect(image!.width, 128);
-    expect(image.height, 128);
+    expect(image!.width, 256);
+    expect(image.height, 256);
     image.dispose();
     final adult = await tester.runAsync(
       () => WidgetPetRenderer.render({'pet_style': 'opossum_classic'}, 250),
@@ -518,7 +518,7 @@ void main() {
               date: DateTime(now.year, now.month, now.day - i),
             ),
         ]);
-        if (const bool.fromEnvironment('KWALL_CAPTURE')) {
+        if (const bool.fromEnvironment('KNOTES_CAPTURE')) {
           final config = File('.dart_tool/package_config.json').absolute;
           final packages =
               (jsonDecode(await config.readAsString()) as Map)['packages']
@@ -557,7 +557,7 @@ void main() {
       for (final size in [const Size(390, 844), const Size(1024, 900)]) {
         for (final mode in ['light', 'dark']) {
           tester.view.physicalSize = size;
-          KwallTheme.configure({'theme_mode': mode}, Brightness.light);
+          KnotesTheme.configure({'theme_mode': mode}, Brightness.light);
           for (final page in ['finances', 'statistics', 'account']) {
             await tester.pumpWidget(const SizedBox.shrink());
             final key = GlobalKey();
@@ -584,7 +584,7 @@ void main() {
               AppScope(
                 dependencies: dependencies,
                 child: MaterialApp(
-                  theme: KwallTheme.expressiveTheme,
+                  theme: KnotesTheme.expressiveTheme,
                   home: RepaintBoundary(
                     key: key,
                     child: Scaffold(body: child),
@@ -605,7 +605,7 @@ void main() {
               await tester.pumpAndSettle();
               expect(tester.takeException(), isNull);
             }
-            if (const bool.fromEnvironment('KWALL_CAPTURE')) {
+            if (const bool.fromEnvironment('KNOTES_CAPTURE')) {
               final boundary =
                   key.currentContext!.findRenderObject()!
                       as RenderRepaintBoundary;
@@ -637,7 +637,7 @@ void main() {
         }
       }
       await tester.pumpWidget(const SizedBox.shrink());
-      KwallTheme.configure({'theme_mode': 'light'}, Brightness.light);
+      KnotesTheme.configure({'theme_mode': 'light'}, Brightness.light);
     },
   );
 }

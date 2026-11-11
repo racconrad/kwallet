@@ -57,7 +57,8 @@ class QuickExpense {
       categoryId: (map['category_id'] as String?) ?? 'cat_other',
       accountId: map['account_id'] as String?,
       iconKey: (map['icon_key'] as String?) ?? 'bolt',
-      createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
+      createdAt:
+          DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
     );
   }

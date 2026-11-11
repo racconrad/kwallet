@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../view_models/planning_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/view_models/planning_view_model.dart';
 
 class AgendaCashflowCard extends StatelessWidget {
   final PlanningViewModel model;
 
-  const AgendaCashflowCard({
-    super.key,
-    required this.model,
-  });
+  const AgendaCashflowCard({super.key, required this.model});
 
   @override
   Widget build(BuildContext context) {
@@ -35,13 +32,13 @@ class AgendaCashflowCard extends StatelessWidget {
                 Icon(
                   Icons.trending_up_rounded,
                   size: 18,
-                  color: KwallTheme.accent,
+                  color: KnotesTheme.accent,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Previsión de flujo por divisa',
-                    style: KwallTheme.fontTitle.copyWith(fontSize: 15),
+                    style: KnotesTheme.fontTitle.copyWith(fontSize: 15),
                   ),
                 ),
               ],
@@ -53,14 +50,19 @@ class AgendaCashflowCard extends StatelessWidget {
               children: [
                 for (final item in forecast.entries)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: KwallTheme.surfaceContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(10),
+                      color: KnotesTheme.surfaceContainer.withValues(
+                        alpha: 0.5,
+                      ),
+                      borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
                       border: Border.all(
                         color: item.value.shortAccounts.isNotEmpty
-                            ? KwallTheme.expenseRed.withValues(alpha: 0.5)
-                            : KwallTheme.border.withValues(alpha: 0.3),
+                            ? KnotesTheme.expenseRed.withValues(alpha: 0.5)
+                            : KnotesTheme.border.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Column(
@@ -71,23 +73,23 @@ class AgendaCashflowCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: KwallTheme.accent,
+                            color: KnotesTheme.accent,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Previsto: ${KwallTheme.formatCurrency(item.value.scheduled, item.key)}',
+                          'Previsto: ${KnotesTheme.formatCurrency(item.value.scheduled, item.key)}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: KwallTheme.textPrimary,
+                            color: KnotesTheme.textPrimary,
                           ),
                         ),
                         Text(
-                          'Disponible: ${KwallTheme.formatCurrency(item.value.balance, item.key)}',
+                          'Disponible: ${KnotesTheme.formatCurrency(item.value.balance, item.key)}',
                           style: TextStyle(
                             fontSize: 11,
-                            color: KwallTheme.textSecondary,
+                            color: KnotesTheme.textSecondary,
                           ),
                         ),
                       ],
@@ -100,10 +102,10 @@ class AgendaCashflowCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: KwallTheme.expenseRed.withValues(alpha: 0.12),
+                  color: KnotesTheme.expenseRed.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: KwallTheme.expenseRed.withValues(alpha: 0.3),
+                    color: KnotesTheme.expenseRed.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -111,7 +113,7 @@ class AgendaCashflowCard extends StatelessWidget {
                     Icon(
                       Icons.warning_amber_rounded,
                       size: 16,
-                      color: KwallTheme.expenseRed,
+                      color: KnotesTheme.expenseRed,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -120,7 +122,7 @@ class AgendaCashflowCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: KwallTheme.expenseRed,
+                          color: KnotesTheme.expenseRed,
                         ),
                       ),
                     ),

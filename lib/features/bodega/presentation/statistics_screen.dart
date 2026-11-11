@@ -3,12 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../../../core/theme/category_visuals.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../view_models/statistics_view_model.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/core/theme/category_visuals.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/view_models/statistics_view_model.dart';
 
 class StatisticsScreen extends StatefulWidget {
   final String currency;
@@ -23,7 +23,7 @@ class _StatisticsScreenState
   StatisticsViewModel createViewModel(AppDependencies dependencies) =>
       dependencies.statistics();
   String money(double value) =>
-      KwallTheme.formatCurrency(value, widget.currency);
+      KnotesTheme.formatCurrency(value, widget.currency);
   @override
   Widget build(BuildContext context) {
     final end = model.end.subtract(const Duration(days: 1));
@@ -63,7 +63,7 @@ class _StatisticsScreenState
                     child: Text(
                       label,
                       textAlign: TextAlign.center,
-                      style: KwallTheme.fontTitle,
+                      style: KnotesTheme.fontTitle,
                     ),
                   ),
                   IconButton(
@@ -88,11 +88,11 @@ class _StatisticsScreenState
               ] else ...[
                 Text(
                   'Total gastado',
-                  style: TextStyle(color: KwallTheme.textSecondary),
+                  style: TextStyle(color: KnotesTheme.textSecondary),
                 ),
                 Text(
                   money(model.total),
-                  style: KwallTheme.fontDisplay.copyWith(fontSize: 32),
+                  style: KnotesTheme.fontDisplay.copyWith(fontSize: 32),
                 ),
                 const SizedBox(height: 8),
                 Text('Promedio diario: ${money(model.average)}'),
@@ -101,14 +101,14 @@ class _StatisticsScreenState
                   model.change == null
                       ? 'Periodo anterior: ${money(model.previousTotal)}'
                       : '${model.change!.abs().toStringAsFixed(1)} % ${model.change! >= 0 ? 'más' : 'menos'} que ${model.monthly ? 'el mes' : 'la semana'} anterior (${money(model.previousTotal)})',
-                  style: TextStyle(color: KwallTheme.textSecondary),
+                  style: TextStyle(color: KnotesTheme.textSecondary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Comparación de periodos completos. El actual puede estar en curso.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -158,8 +158,8 @@ class _StatisticsScreenState
                                                   ),
                                             decoration: BoxDecoration(
                                               color: day.amount == 0
-                                                  ? KwallTheme.border
-                                                  : KwallTheme.accent,
+                                                  ? KnotesTheme.border
+                                                  : KnotesTheme.accent,
                                               borderRadius:
                                                   BorderRadius.circular(4),
                                             ),
@@ -207,7 +207,7 @@ class _StatisticsScreenState
                 const SizedBox(height: 28),
                 Text(
                   'Por categoría',
-                  style: KwallTheme.fontTitle.copyWith(fontSize: 20),
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 20),
                 ),
                 const SizedBox(height: 12),
                 for (final item in model.categories) ...[
@@ -215,7 +215,7 @@ class _StatisticsScreenState
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(
                       item.category.iconData,
-                      color: KwallTheme.displayColor(item.category.colorValue),
+                      color: KnotesTheme.displayColor(item.category.colorValue),
                     ),
                     title: Text(item.category.name),
                     subtitle: Text('${item.percentage.toStringAsFixed(1)} %'),
@@ -226,8 +226,8 @@ class _StatisticsScreenState
                   ),
                   LinearProgressIndicator(
                     value: item.percentage / 100,
-                    color: KwallTheme.displayColor(item.category.colorValue),
-                    backgroundColor: KwallTheme.surfaceContainer,
+                    color: KnotesTheme.displayColor(item.category.colorValue),
+                    backgroundColor: KnotesTheme.surfaceContainer,
                     minHeight: 4,
                   ),
                   const SizedBox(height: 8),
@@ -237,7 +237,7 @@ class _StatisticsScreenState
                   'Las transferencias, los aportes a ahorro y los ajustes de saldo no cuentan como gastos.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                   ),
                 ),
               ],

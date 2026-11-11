@@ -1,14 +1,17 @@
-import '../../../core/models/currency_conversion.dart';
-import '../../../core/theme/account_visuals.dart';
-import '../../../core/widgets/currency_selector.dart';
+import 'package:knotes/features/bodega/presentation/components/account_balance_adjustment.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
+import 'package:knotes/core/theme/account_visuals.dart';
+import 'package:knotes/core/widgets/currency_selector.dart';
+import 'package:knotes/core/widgets/currency_definition_sheet.dart';
 
 import 'package:flutter/material.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/account_editor_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../models/account.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/bodega/view_models/account_editor_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
 
 class AddAccountDialog extends StatefulWidget {
   final String currency;
@@ -45,12 +48,40 @@ class _AddAccountDialogState
   late String _icon =
       widget.account?.iconKey ??
       (widget.initialType == 'vault' ? 'savings' : 'wallet');
-  late int _color = widget.account?.colorValue ?? KwallTheme.accent.toARGB32();
+  late int _color = widget.account?.colorValue ?? KnotesTheme.accent.toARGB32();
   late String _type = widget.account?.type ?? widget.initialType;
   late bool _excludeFromAvailable =
       widget.account?.excludeFromAvailable ?? false;
   bool get _saving => model.busy;
   bool _savedSuccess = false;
+  bool _currenciesInitialized = false;
+
+  @override
+  void onViewModelChanged() {
+    if (!_currenciesInitialized && model.currenciesReady) {
+      if (widget.account == null &&
+          !model.currencyOptions.any(
+            (c) =>
+                CurrencyConversion.code(c) ==
+                CurrencyConversion.code(_baseCurrency.text),
+          )) {
+        _baseCurrency.text = model.currencyOptions.firstOrNull ?? '';
+      }
+      _currenciesInitialized = true;
+    }
+  }
+
+  Future<void> _addCurrency() async {
+    final value = await defineCurrency(
+      context,
+      existing: model.currencyNames.keys,
+    );
+    if (value == null || !mounted) return;
+    if (await model.addCurrency(value.$1, value.$2) && mounted) {
+      setState(() => _baseCurrency.text = value.$1);
+    }
+  }
+
   String? get _error => model.error;
 
   @override
@@ -64,9 +95,7 @@ class _AddAccountDialogState
   }
 
   Future<void> _save() async {
-    final cur = _baseCurrency.text.trim().isEmpty
-        ? widget.currency
-        : _baseCurrency.text.trim();
+    final cur = _baseCurrency.text.trim();
     final saved = await model.save(
       original: widget.account,
       name: _name.text,
@@ -120,91 +149,11 @@ class _AddAccountDialogState
   }
 
   Future<void> _adjust() async {
-    final balance = TextEditingController(
-      text: widget.account!.balance.toStringAsFixed(2),
+    final saved = await adjustAccountBalance(
+      context,
+      account: widget.account!,
+      model: model,
     );
-    final reason = TextEditingController();
-    bool saving = false;
-    String? error;
-    final saved = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => AlertDialog(
-          title: const Text('Ajustar saldo'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Saldo registrado: ${KwallTheme.formatCurrency(widget.account!.balance, widget.account!.currency)}',
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: balance,
-                  enabled: !saving,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Saldo real',
-                    prefixText:
-                        '${CurrencyConversion.symbol(widget.account!.currency)} ',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reason,
-                  enabled: !saving,
-                  decoration: const InputDecoration(
-                    labelText: 'Motivo del ajuste',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'La diferencia quedará en el historial como ajuste de saldo.',
-                ),
-                if (error != null)
-                  Text(error!, style: TextStyle(color: KwallTheme.expenseRed)),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: saving ? null : () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: saving
-                  ? null
-                  : () async {
-                      update(() => saving = true);
-                      final ok = await model.adjust(
-                        widget.account!,
-                        balance.text,
-                        reason.text,
-                      );
-                      if (!ctx.mounted) return;
-                      if (ok) {
-                        Navigator.pop(ctx, true);
-                      } else {
-                        update(() {
-                          saving = false;
-                          error = model.error;
-                        });
-                      }
-                    },
-              child: Text(saving ? 'Guardando…' : 'Guardar ajuste'),
-            ),
-          ],
-        ),
-      ),
-    );
-    // Dialog route finishes its reverse transition before releasing controllers.
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    balance.dispose();
-    reason.dispose();
     if (saved == true && mounted) Navigator.pop(context);
   }
 
@@ -227,7 +176,7 @@ class _AddAccountDialogState
                         : widget.account!.isArchived
                         ? 'Cuenta desactivada'
                         : 'Editar cuenta',
-                    style: KwallTheme.fontTitle.copyWith(fontSize: 22),
+                    style: KnotesTheme.fontTitle.copyWith(fontSize: 22),
                   ),
                 ),
                 if (widget.account != null)
@@ -246,21 +195,23 @@ class _AddAccountDialogState
                     },
                     itemBuilder: (_) => [
                       if (!widget.account!.isArchived)
-                        const PopupMenuItem(
-                          value: 'adjust',
-                          child: Text('Ajustar saldo'),
-                        ),
-                      PopupMenuItem(
-                        value: 'archive',
-                        child: Text(
-                          widget.account!.isArchived
-                              ? 'Reactivar cuenta'
-                              : 'Desactivar cuenta',
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Eliminar cuenta'),
+                        menuItem('adjust', Icons.tune_rounded, 'Ajustar saldo'),
+                      widget.account!.isArchived
+                          ? menuItem(
+                              'archive',
+                              Icons.unarchive_outlined,
+                              'Reactivar cuenta',
+                            )
+                          : menuItem(
+                              'archive',
+                              Icons.archive_outlined,
+                              'Desactivar cuenta',
+                            ),
+                      menuItem(
+                        'delete',
+                        Icons.delete_outline_rounded,
+                        'Eliminar cuenta',
+                        danger: true,
                       ),
                     ],
                   ),
@@ -276,42 +227,45 @@ class _AddAccountDialogState
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
+              borderRadius: dropdownRadius,
               isExpanded: true,
               icon: const Icon(Icons.expand_more_rounded),
               initialValue: _type,
               decoration: const InputDecoration(labelText: 'Tipo'),
               items: [
                 for (final type in {
-                  'cash': 'Efectivo',
-                  'bank': 'Banco',
-                  'vault': 'Ahorro',
-                  'credit': 'Crédito',
+                  'cash': (Icons.payments_outlined, 'Efectivo'),
+                  'bank': (Icons.account_balance_outlined, 'Banco'),
+                  'vault': (Icons.savings_outlined, 'Ahorro'),
+                  'credit': (Icons.credit_card_rounded, 'Crédito'),
                 }.entries)
-                  DropdownMenuItem(value: type.key, child: Text(type.value)),
+                  DropdownMenuItem(
+                    value: type.key,
+                    child: MenuLabel(type.value.$1, type.value.$2),
+                  ),
               ],
               onChanged: _saving
                   ? null
                   : (value) => setState(() => _type = value!),
             ),
             const SizedBox(height: 12),
-            CurrencySelector(
-              value: _baseCurrency.text,
-              options: model.currencyOptions.isNotEmpty
-                  ? (model.currencyOptions.contains(_baseCurrency.text)
-                        ? model.currencyOptions.toSet()
-                        : {
-                            model.currencyOptions.first,
-                            ...model.currencyOptions,
-                          })
-                  : {
-                      _baseCurrency.text.trim().isNotEmpty
-                          ? _baseCurrency.text.trim()
-                          : widget.currency,
-                    },
-              currencyNames: model.currencyNames,
-              onChanged: _saving
-                  ? null
-                  : (value) => setState(() => _baseCurrency.text = value),
+            if (_baseCurrency.text.isNotEmpty &&
+                (model.currencyOptions.isNotEmpty || widget.account != null))
+              CurrencySelector(
+                value: _baseCurrency.text,
+                options: {
+                  ...model.currencyOptions,
+                  if (widget.account != null) widget.account!.currency,
+                },
+                currencyNames: model.currencyNames,
+                onChanged: _saving
+                    ? null
+                    : (value) => setState(() => _baseCurrency.text = value),
+              ),
+            OutlinedButton.icon(
+              onPressed: _saving ? null : _addCurrency,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Añadir moneda'),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -332,7 +286,7 @@ class _AddAccountDialogState
                         child: Icon(
                           Icons.lock_outline_rounded,
                           size: 20,
-                          color: KwallTheme.textSecondary,
+                          color: KnotesTheme.textSecondary,
                         ),
                       )
                     : null,
@@ -379,7 +333,7 @@ class _AddAccountDialogState
               ),
             ],
             const SizedBox(height: 20),
-            Text('Icono', style: KwallTheme.fontTitle),
+            Text('Icono', style: KnotesTheme.fontTitle),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
@@ -402,7 +356,7 @@ class _AddAccountDialogState
               ],
             ),
             const SizedBox(height: 16),
-            Text('Color', style: KwallTheme.fontTitle),
+            Text('Color', style: KnotesTheme.fontTitle),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
@@ -443,7 +397,7 @@ class _AddAccountDialogState
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: _color == entry.key
-                                ? KwallTheme.textPrimary
+                                ? KnotesTheme.textPrimary
                                 : Colors.transparent,
                             width: 3,
                           ),
@@ -455,12 +409,12 @@ class _AddAccountDialogState
             ),
             const SizedBox(height: 20),
             if (_error != null)
-              Text(_error!, style: TextStyle(color: KwallTheme.expenseRed)),
+              Text(_error!, style: TextStyle(color: KnotesTheme.expenseRed)),
             FilledButton.icon(
               onPressed: _saving || _savedSuccess ? null : _save,
               style: _savedSuccess
                   ? FilledButton.styleFrom(
-                      backgroundColor: KwallTheme.incomeGreen,
+                      backgroundColor: KnotesTheme.incomeGreen,
                       foregroundColor: Colors.white,
                     )
                   : null,
@@ -518,7 +472,7 @@ class _AddAccountDialogState
               TextButton.icon(
                 onPressed: _saving ? null : _delete,
                 style: TextButton.styleFrom(
-                  foregroundColor: KwallTheme.expenseRed,
+                  foregroundColor: KnotesTheme.expenseRed,
                 ),
                 icon: const Icon(Icons.delete_outline_rounded),
                 label: const Text('Eliminar cuenta'),

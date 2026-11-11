@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../view_models/planning_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/view_models/planning_view_model.dart';
 
 class PlanHistorySection extends StatelessWidget {
   final PlanningViewModel model;
@@ -30,19 +30,19 @@ class PlanHistorySection extends StatelessWidget {
             tilePadding: EdgeInsets.zero,
             leading: Icon(
               Icons.history_rounded,
-              color: KwallTheme.incomeGreen,
+              color: KnotesTheme.incomeGreen,
               size: 20,
             ),
             title: Text(
               'Historial de pagos (${payments.length})',
-              style: KwallTheme.fontTitle.copyWith(fontSize: 15),
+              style: KnotesTheme.fontTitle.copyWith(fontSize: 15),
             ),
             subtitle: completed.isNotEmpty
                 ? Text(
                     '${completed.length} compromisos completados',
                     style: TextStyle(
                       fontSize: 12,
-                      color: KwallTheme.textSecondary,
+                      color: KnotesTheme.textSecondary,
                     ),
                   )
                 : null,
@@ -53,7 +53,7 @@ class PlanHistorySection extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'Aún no hay cuotas pagadas.',
-                    style: TextStyle(color: KwallTheme.textSecondary),
+                    style: TextStyle(color: KnotesTheme.textSecondary),
                   ),
                 )
               else
@@ -64,7 +64,7 @@ class PlanHistorySection extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Compromisos completados',
-                    style: KwallTheme.fontTitle.copyWith(fontSize: 13),
+                    style: KnotesTheme.fontTitle.copyWith(fontSize: 13),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -74,7 +74,7 @@ class PlanHistorySection extends StatelessWidget {
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(
                       Icons.check_circle_rounded,
-                      color: KwallTheme.incomeGreen,
+                      color: KnotesTheme.incomeGreen,
                       size: 18,
                     ),
                     title: Text(
@@ -84,9 +84,9 @@ class PlanHistorySection extends StatelessWidget {
                       ),
                     ),
                     trailing: Text(
-                      KwallTheme.formatCurrency(plan.amount, currency),
+                      KnotesTheme.formatCurrency(plan.amount, currency),
                       style: TextStyle(
-                        color: KwallTheme.textSecondary,
+                        color: KnotesTheme.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -121,19 +121,21 @@ class PlanHistorySection extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(
         Icons.check_circle_outline_rounded,
-        color: KwallTheme.incomeGreen,
+        color: KnotesTheme.incomeGreen,
         size: 18,
       ),
-      title: Text(title,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+      ),
       subtitle: Text(
         'Pagado el $paidDateText${dueDateText.isNotEmpty ? ' · Vencía: $dueDateText' : ''}',
-        style: TextStyle(fontSize: 11, color: KwallTheme.textSecondary),
+        style: TextStyle(fontSize: 11, color: KnotesTheme.textSecondary),
       ),
       trailing: Text(
-        KwallTheme.formatCurrency(amount, currency),
+        KnotesTheme.formatCurrency(amount, currency),
         style: TextStyle(
-          color: KwallTheme.incomeGreen,
+          color: KnotesTheme.incomeGreen,
           fontWeight: FontWeight.bold,
           fontSize: 13,
         ),
