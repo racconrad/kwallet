@@ -1,4 +1,4 @@
-name: kwall
+name: knotes
 description: "Local-first finances, habits, notes, and a growing pixel companion."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.1.0+2
+version: 1.1.0+2003
 
 environment:
   sdk: ^3.13.5
@@ -69,18 +69,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/pets/cat.png
-    - assets/pets/cat_baby.png
-    - assets/pets/rat.png
-    - assets/pets/rat_baby.png
-    - assets/pets/raccoon.png
-    - assets/pets/raccoon_baby.png
-    - assets/pets/opossum.png
-    - assets/pets/opossum_baby.png
-    - assets/pets/rock.png
-    - assets/pets/rock_baby.png
-    - assets/pets/plant.png
-    - assets/pets/plant_baby.png
+    - assets/pets/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

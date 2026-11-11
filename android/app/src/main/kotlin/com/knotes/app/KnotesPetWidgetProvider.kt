@@ -1,5 +1,6 @@
-package com.kwallet.raccon
+package com.knotes.app
 
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -12,15 +13,17 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.util.Base64
 import android.os.Build
+import android.os.SystemClock
 import android.view.View
 import android.widget.RemoteViews
 
-class KwallPetWidgetProvider : AppWidgetProvider() {
+class KnotesPetWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == ACTION_PET_TAP) {
-            handlePetTap(context)
+        when (intent.action) {
+            ACTION_PET_TAP -> handlePetTap(context)
+            ACTION_TAP_EXPIRED -> updateAllWidgets(context)
         }
     }
 
@@ -35,8 +38,10 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_PET_TAP = "com.kwallet.raccon.ACTION_PET_TAP"
-        const val PREFS_NAME = "kwall_widget_data"
+        const val ACTION_PET_TAP = "com.knotes.app.ACTION_PET_TAP"
+        const val ACTION_TAP_EXPIRED = "com.knotes.app.ACTION_TAP_EXPIRED"
+        private const val TAP_REACTION_MS = 6000L
+        const val PREFS_NAME = "knotes_widget_data"
         const val KEY_PET_NAME = "pet_name"
         const val KEY_PET_LEVEL = "pet_level"
         const val KEY_PET_XP = "pet_xp"
@@ -88,6 +93,23 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
             }
             editor.apply()
             updateAllWidgets(context)
+            scheduleTapExpiry(context)
+        }
+
+        // Without this the tap reaction stays until the next 30-minute system update.
+        private fun scheduleTapExpiry(context: Context) {
+            val intent = Intent(context, KnotesPetWidgetProvider::class.java).apply {
+                action = ACTION_TAP_EXPIRED
+            }
+            val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+            val pending = PendingIntent.getBroadcast(context, 202, intent, flags)
+            val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarms.set(
+                AlarmManager.ELAPSED_REALTIME,
+                SystemClock.elapsedRealtime() + TAP_REACTION_MS + 200L,
+                pending,
+            )
         }
 
         fun updateAppWidget(
@@ -103,7 +125,7 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
             val totalHabits = prefs.getInt(KEY_TOTAL_HABITS, 0)
             val pendingHabits = prefs.getInt(KEY_PENDING_HABITS, 0)
             val petStyle = (prefs.getString(KEY_PET_STYLE, "classic") ?: "classic").lowercase()
-            val themePalette = (prefs.getString(KEY_THEME_PALETTE, "forest") ?: "forest").lowercase()
+            val themePalette = (prefs.getString(KEY_THEME_PALETTE, "iris") ?: "iris").lowercase()
             val storedPose = (prefs.getString(KEY_PET_POSE, "idle") ?: "idle").lowercase()
             val storedMood = (prefs.getString(KEY_PET_MOOD, "normal") ?: "normal").lowercase()
             val bgMode = (prefs.getString(KEY_WIDGET_BG_MODE, "default") ?: "default").lowercase()
@@ -111,13 +133,13 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
 
             val now = System.currentTimeMillis()
             val lastTap = prefs.getLong(KEY_LAST_TAP_TIME, 0L)
-            val isRecentTap = (now - lastTap) <= 6000L
+            val isRecentTap = (now - lastTap) <= TAP_REACTION_MS
 
             val effectiveMood = if (isRecentTap) prefs.getString(KEY_TAP_MOOD, storedMood) ?: storedMood else storedMood
             val effectivePose = if (isRecentTap) prefs.getString(KEY_TAP_POSE, storedPose) ?: storedPose else storedPose
-            val effectiveStatus = prefs.getString(KEY_STATUS_MESSAGE, "kwall") ?: "kwall"
+            val effectiveStatus = prefs.getString(KEY_STATUS_MESSAGE, "knotes") ?: "knotes"
 
-            val views = RemoteViews(context.packageName, R.layout.kwall_pet_widget)
+            val views = RemoteViews(context.packageName, R.layout.knotes_pet_widget)
 
             // Update brand or status message depending on dynamic state
             views.setTextViewText(R.id.widget_brand, effectiveStatus)
@@ -131,10 +153,13 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
                 }
                 "color" -> {
                     val effectiveColor = if (customBgColor != 0) customBgColor else when (themePalette) {
+                        "forest" -> 0xFF212722.toInt()
+                        "ember" -> 0xFF291E19.toInt()
+                        "ocean" -> 0xFF191F29.toInt()
                         "plum" -> 0xFF281F2C.toInt()
                         "rose" -> 0xFF2C1E23.toInt()
                         "gold" -> 0xFF2C261A.toInt()
-                        else -> 0xFF212722.toInt()
+                        else -> 0xFF1C1929.toInt()
                     }
                     views.setInt(R.id.widget_root, "setBackgroundColor", effectiveColor)
                     views.setInt(R.id.widget_cat_stage, "setBackgroundColor", Color.TRANSPARENT)
@@ -184,10 +209,13 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
 
             // Theme colors
             val (accentColor, chipBgRes) = when (themePalette) {
+                "forest" -> Pair(0xFFB2D39C.toInt(), R.drawable.widget_chip_accent_forest)
+                "ember" -> Pair(0xFFFFB59A.toInt(), R.drawable.widget_chip_accent_ember)
+                "ocean" -> Pair(0xFFAAC7FF.toInt(), R.drawable.widget_chip_accent_ocean)
                 "plum" -> Pair(0xFFD9B7ED.toInt(), R.drawable.widget_chip_accent_plum)
                 "rose" -> Pair(0xFFF1B3C7.toInt(), R.drawable.widget_chip_accent_rose)
                 "gold" -> Pair(0xFFE9CB81.toInt(), R.drawable.widget_chip_accent_gold)
-                else -> Pair(0xFFB2D39C.toInt(), R.drawable.widget_chip_accent_forest)
+                else -> Pair(0xFFC7B8FF.toInt(), R.drawable.widget_chip_accent_iris)
             }
 
             views.setTextViewText(R.id.widget_pet_name, petName.uppercase())
@@ -216,7 +244,7 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
             }
 
             // 1. Interactive Pet Tap PendingIntent (on stage and avatar)
-            val tapIntent = Intent(context, KwallPetWidgetProvider::class.java).apply {
+            val tapIntent = Intent(context, KnotesPetWidgetProvider::class.java).apply {
                 action = ACTION_PET_TAP
             }
             val pendingTap = PendingIntent.getBroadcast(context, 201, tapIntent, pendingIntentFlags)
@@ -256,7 +284,7 @@ class KwallPetWidgetProvider : AppWidgetProvider() {
 
         fun updateAllWidgets(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
-            val component = ComponentName(context, KwallPetWidgetProvider::class.java)
+            val component = ComponentName(context, KnotesPetWidgetProvider::class.java)
             val ids = appWidgetManager.getAppWidgetIds(component)
             if (ids != null && ids.isNotEmpty()) {
                 for (id in ids) {

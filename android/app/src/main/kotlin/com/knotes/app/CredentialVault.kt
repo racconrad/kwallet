@@ -1,4 +1,4 @@
-package com.kwallet.raccon
+package com.knotes.app
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
@@ -12,8 +12,8 @@ import javax.crypto.spec.GCMParameterSpec
 
 /** Key material stays in Android Keystore; preferences contain only authenticated ciphertext. */
 class CredentialVault(context: Context) {
-    private val prefs = context.getSharedPreferences("kwall_credentials", Context.MODE_PRIVATE)
-    private val alias = "kwall.github.aes"
+    private val prefs = context.getSharedPreferences("knotes_credentials", Context.MODE_PRIVATE)
+    private val alias = "knotes.github.aes"
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (store.getKey(alias, null) as? SecretKey)?.let { return it }

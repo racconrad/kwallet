@@ -1,4 +1,4 @@
-package com.kwallet.raccon
+package com.knotes.app
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
@@ -11,7 +11,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 
-class KwallPetWidgetConfigureActivity : Activity() {
+class KnotesPetWidgetConfigureActivity : Activity() {
 
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
@@ -31,10 +31,10 @@ class KwallPetWidgetConfigureActivity : Activity() {
             return
         }
 
-        val prefs = getSharedPreferences(KwallPetWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
-        var selectedPalette = prefs.getString(KwallPetWidgetProvider.KEY_THEME_PALETTE, "forest") ?: "forest"
-        var selectedBgMode = prefs.getString(KwallPetWidgetProvider.KEY_WIDGET_BG_MODE, "default") ?: "default"
-        var selectedPetStyle = prefs.getString(KwallPetWidgetProvider.KEY_PET_STYLE, "classic") ?: "classic"
+        val prefs = getSharedPreferences(KnotesPetWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+        var selectedPalette = prefs.getString(KnotesPetWidgetProvider.KEY_THEME_PALETTE, "iris") ?: "iris"
+        var selectedBgMode = prefs.getString(KnotesPetWidgetProvider.KEY_WIDGET_BG_MODE, "default") ?: "default"
+        var selectedPetStyle = prefs.getString(KnotesPetWidgetProvider.KEY_PET_STYLE, "classic") ?: "classic"
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -48,7 +48,7 @@ class KwallPetWidgetConfigureActivity : Activity() {
         }
 
         val title = TextView(this).apply {
-            text = "Personalizar Widget Kwall"
+            text = "Personalizar Widget knotes"
             textSize = 20f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
@@ -66,6 +66,9 @@ class KwallPetWidgetConfigureActivity : Activity() {
         root.addView(paletteLabel)
 
         val palettes = listOf(
+            "iris" to "Iris (Violeta)",
+            "ember" to "Brasa (Naranja)",
+            "ocean" to "Océano (Azul)",
             "forest" to "Bosque (Verde)",
             "plum" to "Ciruela (Púrpura)",
             "rose" to "Rosa",
@@ -73,7 +76,7 @@ class KwallPetWidgetConfigureActivity : Activity() {
         )
         val paletteSpinner = Spinner(this).apply {
             adapter = ArrayAdapter(
-                this@KwallPetWidgetConfigureActivity,
+                this@KnotesPetWidgetConfigureActivity,
                 android.R.layout.simple_spinner_dropdown_item,
                 palettes.map { it.second }
             )
@@ -103,7 +106,7 @@ class KwallPetWidgetConfigureActivity : Activity() {
         )
         val bgSpinner = Spinner(this).apply {
             adapter = ArrayAdapter(
-                this@KwallPetWidgetConfigureActivity,
+                this@KnotesPetWidgetConfigureActivity,
                 android.R.layout.simple_spinner_dropdown_item,
                 bgModes.map { it.second }
             )
@@ -139,7 +142,7 @@ class KwallPetWidgetConfigureActivity : Activity() {
         )
         val petSpinner = Spinner(this).apply {
             adapter = ArrayAdapter(
-                this@KwallPetWidgetConfigureActivity,
+                this@KnotesPetWidgetConfigureActivity,
                 android.R.layout.simple_spinner_dropdown_item,
                 petStyles.map { it.second }
             )
@@ -167,19 +170,19 @@ class KwallPetWidgetConfigureActivity : Activity() {
             text = "Guardar widget"
             setTextColor(Color.BLACK)
             val btnBg = GradientDrawable().apply {
-                setColor(0xFF7EA86C.toInt())
+                setColor(0xFFC7B8FF.toInt())
                 cornerRadius = 24f
             }
             background = btnBg
             setOnClickListener {
                 prefs.edit()
-                    .putString(KwallPetWidgetProvider.KEY_THEME_PALETTE, selectedPalette)
-                    .putString(KwallPetWidgetProvider.KEY_WIDGET_BG_MODE, selectedBgMode)
-                    .putString(KwallPetWidgetProvider.KEY_PET_STYLE, selectedPetStyle)
+                    .putString(KnotesPetWidgetProvider.KEY_THEME_PALETTE, selectedPalette)
+                    .putString(KnotesPetWidgetProvider.KEY_WIDGET_BG_MODE, selectedBgMode)
+                    .putString(KnotesPetWidgetProvider.KEY_PET_STYLE, selectedPetStyle)
                     .apply()
 
-                val appWidgetManager = AppWidgetManager.getInstance(this@KwallPetWidgetConfigureActivity)
-                KwallPetWidgetProvider.updateAppWidget(this@KwallPetWidgetConfigureActivity, appWidgetManager, appWidgetId)
+                val appWidgetManager = AppWidgetManager.getInstance(this@KnotesPetWidgetConfigureActivity)
+                KnotesPetWidgetProvider.updateAppWidget(this@KnotesPetWidgetConfigureActivity, appWidgetManager, appWidgetId)
 
                 val resultValue = Intent().apply {
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)

@@ -1,4 +1,4 @@
-package com.kwallet.raccon
+package com.knotes.app
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -15,15 +15,15 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val WIDGET_CHANNEL = "com.kwallet.raccon/widget"
-    private val NOTIFICATION_CHANNEL = "com.kwallet.raccon/notifications"
+    private val WIDGET_CHANNEL = "com.knotes.app/widget"
+    private val NOTIFICATION_CHANNEL = "com.knotes.app/notifications"
     private var pendingNotificationResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         val vault = CredentialVault(applicationContext)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.kwallet.raccon/credentials").setMethodCallHandler { call, result ->
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.knotes.app/credentials").setMethodCallHandler { call, result ->
             try {
                 when (call.method) {
                     "read" -> result.success(vault.read())
@@ -41,28 +41,28 @@ class MainActivity : FlutterActivity() {
                 "updateWidgetData", "updatePetState" -> {
                     val args = call.arguments as? Map<*, *>
                     if (args != null) {
-                        val prefs = getSharedPreferences(KwallPetWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+                        val prefs = getSharedPreferences(KnotesPetWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
                         val editor = prefs.edit()
 
-                        (args["pet_name"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_PET_NAME, it) }
-                        (args["pet_level"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_PET_LEVEL, it.toInt()) }
-                        (args["pet_xp"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_PET_XP, it.toInt()) }
-                        (args["pet_xp_in_level"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_PET_XP_IN_LEVEL, it.toInt()) }
-                        (args["completed_habits"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_COMPLETED_HABITS, it.toInt()) }
-                        (args["total_habits"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_TOTAL_HABITS, it.toInt()) }
-                        (args["pending_habits"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_PENDING_HABITS, it.toInt()) }
-                        (args["status_message"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_STATUS_MESSAGE, it) }
-                        (args["pet_style"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_PET_STYLE, it) }
-                        (args["theme_palette"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_THEME_PALETTE, it) }
-                        (args["widget_bg_mode"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_WIDGET_BG_MODE, it) }
-                        (args["widget_bg_color"] as? Number)?.let { editor.putInt(KwallPetWidgetProvider.KEY_WIDGET_BG_COLOR, it.toInt()) }
+                        (args["pet_name"] as? String)?.let { editor.putString(KnotesPetWidgetProvider.KEY_PET_NAME, it) }
+                        (args["pet_level"] as? Number)?.let { editor.putInt(KnotesPetWidgetProvider.KEY_PET_LEVEL, it.toInt()) }
+                        (args["pet_xp"] as? Number)?.let { editor.putInt(KnotesPetWidgetProvider.KEY_PET_XP, it.toInt()) }
+                        (args["pet_xp_in_level"] as? Number)?.let { editor.putInt(KnotesPetWidgetProvider.KEY_PET_XP_IN_LEVEL, it.toInt()) }
+                        (args["completed_habits"] as? Number)?.let { editor.putInt(KnotesPetWidgetProvider.KEY_COMPLETED_HABITS, it.toInt()) }
+                        (args["total_habits"] as? Number)?.let { editor.putInt(KnotesPetWidgetProvider.KEY_TOTAL_HABITS, it.toInt()) }
+                        (args["pending_habits"] as? Number)?.let { editor.putInt(KnotesPetWidgetProvider.KEY_PENDING_HABITS, it.toInt()) }
+                        (args["status_message"] as? String)?.let { editor.putString(KnotesPetWidgetProvider.KEY_STATUS_MESSAGE, it) }
+                        (args["pet_style"] as? String)?.let { editor.putString(KnotesPetWidgetProvider.KEY_PET_STYLE, it) }
+                        (args["theme_palette"] as? String)?.let { editor.putString(KnotesPetWidgetProvider.KEY_THEME_PALETTE, it) }
+                        (args["widget_bg_mode"] as? String)?.let { editor.putString(KnotesPetWidgetProvider.KEY_WIDGET_BG_MODE, it) }
+                        (args["widget_bg_color"] as? Number)?.let { editor.putInt(KnotesPetWidgetProvider.KEY_WIDGET_BG_COLOR, it.toInt()) }
 
                         (args["pet_pose"] as? String)?.let {
-                            editor.putString(KwallPetWidgetProvider.KEY_PET_POSE, it)
-                            editor.putLong(KwallPetWidgetProvider.KEY_LAST_TAP_TIME, 0L)
+                            editor.putString(KnotesPetWidgetProvider.KEY_PET_POSE, it)
+                            editor.putLong(KnotesPetWidgetProvider.KEY_LAST_TAP_TIME, 0L)
                         }
-                        (args["pet_mood"] as? String)?.let { editor.putString(KwallPetWidgetProvider.KEY_PET_MOOD, it) }
-                        (args["pet_facing_right"] as? Boolean)?.let { editor.putBoolean(KwallPetWidgetProvider.KEY_PET_FACING_RIGHT, it) }
+                        (args["pet_mood"] as? String)?.let { editor.putString(KnotesPetWidgetProvider.KEY_PET_MOOD, it) }
+                        (args["pet_facing_right"] as? Boolean)?.let { editor.putBoolean(KnotesPetWidgetProvider.KEY_PET_FACING_RIGHT, it) }
                         (args["pet_sprites"] as? Map<*, *>)?.forEach { (pose, sprite) ->
                             if (pose is String && sprite is String && sprite.length <= 200000) {
                                 editor.putString("pet_sprite_$pose", sprite)
@@ -70,7 +70,7 @@ class MainActivity : FlutterActivity() {
                         }
 
                         editor.apply()
-                        KwallPetWidgetProvider.updateAllWidgets(applicationContext)
+                        KnotesPetWidgetProvider.updateAllWidgets(applicationContext)
                         result.success(true)
                     } else {
                         result.error("INVALID_ARGUMENTS", "Arguments must be a map", null)
@@ -94,9 +94,9 @@ class MainActivity : FlutterActivity() {
                     val args = call.arguments as? Map<*, *>
                     if (args != null) {
                         val id = (args["id"] as? Number)?.toInt() ?: 1000
-                        val title = args["title"] as? String ?: "Kwall"
+                        val title = args["title"] as? String ?: "knotes"
                         val body = args["body"] as? String ?: ""
-                        val channelId = args["channelId"] as? String ?: "kwall_habits"
+                        val channelId = args["channelId"] as? String ?: "knotes_habits"
                         showSystemNotification(id, title, body, channelId)
                         result.success(true)
                     } else {
@@ -137,6 +137,21 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_URL", "URL cannot be null", null)
                     }
                 }
+                "pendingReminderDone" -> result.success(ReminderReceiver.pendingDone(this))
+                "acknowledgeReminderDone" -> {
+                    val entries = call.argument<List<String>>("entries") ?: emptyList()
+                    ReminderReceiver.acknowledgeDone(this, entries)
+                    result.success(null)
+                }
+                "scheduleReminders" -> {
+                    val json = call.arguments as? String
+                    if (json != null) {
+                        ReminderReceiver.schedule(this, json)
+                        result.success(true)
+                    } else {
+                        result.error("INVALID_ARGUMENTS", "Expected a JSON list", null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }
@@ -146,13 +161,13 @@ class MainActivity : FlutterActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
             val channels = listOf(
-                NotificationChannel("kwall_habits", "Hábitos y Rutinas", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                NotificationChannel("knotes_habits", "Hábitos y Rutinas", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "Recordatorios de hábitos y rutinas diarias"
                 },
-                NotificationChannel("kwall_finances", "Finanzas y Compromisos", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                NotificationChannel("knotes_finances", "Finanzas y Compromisos", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "Alertas de compromisos y presupuestos"
                 },
-                NotificationChannel("kwall_pet", "Mascota y Compañero", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                NotificationChannel("knotes_pet", "Mascota y Compañero", NotificationManager.IMPORTANCE_DEFAULT).apply {
                     description = "Avisos y cuidados de tu mascota"
                 }
             )
@@ -162,35 +177,8 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun showSystemNotification(id: Int, title: String, body: String, channelId: String) {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        } else {
-            PendingIntent.FLAG_UPDATE_CURRENT
-        }
-        val pendingIntent = PendingIntent.getActivity(this, id, intent, flags)
-
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, channelId)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
-
-        val notification = builder
-            .setContentTitle(title)
-            .setContentText(body)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-        manager?.notify(id, notification)
-    }
+    private fun showSystemNotification(id: Int, title: String, body: String, channelId: String) =
+        ReminderReceiver.post(this, id, title, body, channelId)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

@@ -70,7 +70,7 @@
             android:layout_marginTop="8dp"
             android:layout_marginEnd="12dp"
             android:fontFamily="sans-serif-medium"
-            android:text="kwall"
+            android:text="knotes"
             android:textColor="#558D9C8F"
             android:textSize="10sp"
             android:textStyle="bold" />

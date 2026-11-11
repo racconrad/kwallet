@@ -2,10 +2,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="false"
-        android:label="kwall"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
@@ -37,28 +38,40 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Kwall Virtual Pet & Habits Widget Configure Activity -->
+        <!-- knotes Virtual Pet & Habits Widget Configure Activity -->
         <activity
-            android:name=".KwallPetWidgetConfigureActivity"
+            android:name=".KnotesPetWidgetConfigureActivity"
             android:exported="true"
             android:theme="@android:style/Theme.DeviceDefault.Dialog"
-            android:label="Configurar Widget Kwall">
+            android:label="Configurar Widget knotes">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
         </activity>
 
-        <!-- Kwall Virtual Pet & Habits AppWidget -->
+        <!-- Daily habit, goal and day reminders; re-armed after reboot or time changes -->
         <receiver
-            android:name=".KwallPetWidgetProvider"
+            android:name=".ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+        </receiver>
+
+        <!-- knotes Virtual Pet & Habits AppWidget -->
+        <receiver
+            android:name=".KnotesPetWidgetProvider"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.kwallet.raccon.ACTION_PET_AFFECTION" />
+                <action android:name="com.knotes.app.ACTION_PET_AFFECTION" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/kwall_pet_widget_info" />
+                android:resource="@xml/knotes_pet_widget_info" />
         </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
