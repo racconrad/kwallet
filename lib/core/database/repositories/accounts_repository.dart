@@ -1,15 +1,15 @@
-import '../transaction_writer.dart';
-import '../../../features/bodega/models/transaction_record.dart';
-import '../../models/currency_conversion.dart';
+import 'package:knotes/core/database/transaction_writer.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
 
 import 'dart:convert';
 
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../features/bodega/models/account.dart';
-import '../../../features/bodega/models/category_model.dart';
-import '../database_context.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/core/database/database_context.dart';
 
 mixin AccountsRepository on DatabaseContext {
   Future<List<Account>> getAccounts({

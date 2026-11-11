@@ -1,8 +1,8 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../features/bodega/models/transaction_record.dart';
-import 'reward_events.dart';
-import 'currency_snapshot.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/core/database/reward_events.dart';
+import 'package:knotes/core/database/currency_snapshot.dart';
 
 class TransactionWriter {
   static Future<void> insert(Transaction txn, TransactionRecord tx) async {

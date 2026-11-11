@@ -1,7 +1,6 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import '../../features/bodega/models/category_model.dart';
-import '../../features/journal/models/journal_models.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
 
 class DatabaseSchema {
   static Future<void> create(Database db, int version) async {
@@ -77,118 +76,13 @@ class DatabaseSchema {
     await migrateV6(db);
     await migrateV7(db);
     await migrateV8(db);
+    await migrateV9(db);
+    await migrateV10(db);
 
-    final now = DateTime.now();
-
-    // Default currency
-    await db.insert('app_settings', {'key': 'currency', 'value': '\$'});
-    await db.insert('user_currencies', {
-      'code': '\$',
-      'name': '',
-      'created_at': now.toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.ignore);
-
-    // Save database schema version
     await db.insert('app_settings', {
       'key': 'db_version',
       'value': '$version',
     }, conflictAlgorithm: ConflictAlgorithm.replace);
-
-    // Seed default clean categories (No emojis, sleek Material Expressive icons)
-    final defaultCategories = [
-      CategoryModel(
-        id: 'cat_food',
-        name: 'Alimentación & Súper',
-        type: 'expense',
-        iconKey: 'food',
-        colorValue: 0xFF10B981,
-      ),
-      CategoryModel(
-        id: 'cat_home',
-        name: 'Hogar & Servicios',
-        type: 'expense',
-        iconKey: 'home',
-        colorValue: 0xFF715033,
-      ),
-      CategoryModel(
-        id: 'cat_transport',
-        name: 'Transporte',
-        type: 'expense',
-        iconKey: 'transport',
-        colorValue: 0xFF6B703A,
-      ),
-      CategoryModel(
-        id: 'cat_leisure',
-        name: 'Ocio & Cafés',
-        type: 'expense',
-        iconKey: 'game',
-        colorValue: 0xFF8C493F,
-      ),
-      CategoryModel(
-        id: 'cat_health',
-        name: 'Salud & Cuidado',
-        type: 'expense',
-        iconKey: 'potion',
-        colorValue: 0xFFEC4899,
-      ),
-      CategoryModel(
-        id: 'cat_shopping',
-        name: 'Compras & Ropa',
-        type: 'expense',
-        iconKey: 'loot',
-        colorValue: 0xFFF97316,
-      ),
-      CategoryModel(
-        id: 'cat_bills',
-        name: 'Suscripciones',
-        type: 'expense',
-        iconKey: 'energy',
-        colorValue: 0xFF835800,
-      ),
-      CategoryModel(
-        id: 'cat_other',
-        name: 'Imprevistos',
-        type: 'expense',
-        iconKey: 'boss',
-        colorValue: 0xFF625B52,
-      ),
-      // Incomes
-      CategoryModel(
-        id: 'cat_salary',
-        name: 'Sueldo / Nómina',
-        type: 'income',
-        iconKey: 'quest',
-        colorValue: 0xFF10B981,
-      ),
-      CategoryModel(
-        id: 'cat_extra',
-        name: 'Ingresos Extra',
-        type: 'income',
-        iconKey: 'gift',
-        colorValue: 0xFFF59E0B,
-      ),
-      CategoryModel(
-        id: 'cat_invest',
-        name: 'Inversiones',
-        type: 'income',
-        iconKey: 'gem',
-        colorValue: 0xFF14B8A6,
-      ),
-    ];
-
-    for (final cat in defaultCategories) {
-      await db.insert('categories', cat.toMap());
-    }
-
-    // Seed default monthly budget allocation
-    final monthStart = '${now.year}-${now.month.toString().padLeft(2, '0')}-01';
-    await db.insert('budget_allocations', {
-      'period_key': 'monthly:$monthStart',
-      'period': 'monthly',
-      'period_start': monthStart,
-      'amount': 0.0,
-      'updated_at': now.toIso8601String(),
-    });
   }
 
   static Future<void> _createV4Tables(DatabaseExecutor db) async {
@@ -386,6 +280,8 @@ class DatabaseSchema {
     if (oldVersion < 6) await migrateV6(db);
     if (oldVersion < 7) await migrateV7(db);
     if (oldVersion < 8) await migrateV8(db);
+    if (oldVersion < 9) await migrateV9(db);
+    if (oldVersion < 10) await migrateV10(db);
     await db.insert('app_settings', {
       'key': 'db_version',
       'value': '$newVersion',
@@ -581,52 +477,6 @@ class DatabaseSchema {
       )
     ''');
 
-    final qeRows = await db.query('quick_expenses', limit: 1);
-    if (qeRows.isEmpty) {
-      final nowStr = DateTime.now().toIso8601String();
-      final defaults = [
-        {
-          'id': 'qe_coffee',
-          'title': 'Café',
-          'amount': 2.0,
-          'category_id': 'cat_leisure',
-          'icon_key': 'food',
-          'created_at': nowStr,
-        },
-        {
-          'id': 'qe_transport',
-          'title': 'Bus / Metro',
-          'amount': 1.5,
-          'category_id': 'cat_transport',
-          'icon_key': 'transport',
-          'created_at': nowStr,
-        },
-        {
-          'id': 'qe_snack',
-          'title': 'Snack',
-          'amount': 3.0,
-          'category_id': 'cat_food',
-          'icon_key': 'food',
-          'created_at': nowStr,
-        },
-        {
-          'id': 'qe_water',
-          'title': 'Agua',
-          'amount': 1.0,
-          'category_id': 'cat_food',
-          'icon_key': 'potion',
-          'created_at': nowStr,
-        },
-      ];
-      for (final qe in defaults) {
-        await db.insert(
-          'quick_expenses',
-          qe,
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
-    }
-
     await db.execute('''
       CREATE TABLE IF NOT EXISTS user_currencies (
         code TEXT PRIMARY KEY,
@@ -642,13 +492,14 @@ class DatabaseSchema {
         'app_settings',
         where: "key = 'currency'",
       );
-      final mainCur =
-          (mainCurRows.firstOrNull?['value'] as String?)?.trim() ?? '\$';
-      await db.insert('user_currencies', {
-        'code': mainCur.isEmpty ? '\$' : mainCur,
-        'name': '',
-        'created_at': nowStr,
-      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      final mainCur = (mainCurRows.firstOrNull?['value'] as String?)?.trim();
+      if (mainCur != null && mainCur.isNotEmpty) {
+        await db.insert('user_currencies', {
+          'code': mainCur,
+          'name': '',
+          'created_at': nowStr,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
 
       final rateRows = await db.query('global_currency_rates');
       for (final r in rateRows) {
@@ -673,6 +524,43 @@ class DatabaseSchema {
           }, conflictAlgorithm: ConflictAlgorithm.ignore);
         }
       }
+    }
+  }
+
+  // Goals count existing habit logs and task rewards, so only manual goals store progress.
+  static Future<void> migrateV9(DatabaseExecutor db) async {
+    final columns = (await db.rawQuery('PRAGMA table_info(habits)'))
+        .map((r) => r['name'])
+        .toSet();
+    if (!columns.contains('reminder_time')) {
+      await db.execute('ALTER TABLE habits ADD COLUMN reminder_time TEXT');
+    }
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS goals (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK(kind IN ('habits','tasks','manual')),
+        habit_id TEXT REFERENCES habits(id) ON DELETE CASCADE,
+        target INTEGER NOT NULL CHECK(target > 0),
+        progress INTEGER NOT NULL DEFAULT 0 CHECK(progress >= 0),
+        start_day TEXT NOT NULL,
+        end_day TEXT NOT NULL,
+        reminder_time TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_habit_logs_day ON habit_logs(day, completed)',
+    );
+  }
+
+  /// Weekdays a habit reminder rings on, as ISO digits ("12345" = Mon–Fri).
+  static Future<void> migrateV10(DatabaseExecutor db) async {
+    final columns = (await db.rawQuery('PRAGMA table_info(habits)'))
+        .map((r) => r['name'])
+        .toSet();
+    if (!columns.contains('reminder_days')) {
+      await db.execute('ALTER TABLE habits ADD COLUMN reminder_days TEXT');
     }
   }
 

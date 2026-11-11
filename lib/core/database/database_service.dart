@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
-import '../services/credential_store.dart';
+
+import 'package:knotes/core/services/credential_store.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
@@ -7,20 +9,20 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart' as mobile;
 
-import '../contracts/app_repositories.dart' as contracts;
-import 'database_backup.dart';
-import 'database_context.dart';
-import 'database_schema.dart';
-import 'repositories/preferences_repository.dart';
-import 'repositories/accounts_repository.dart';
-import 'repositories/budget_repository.dart';
-import 'repositories/ledger_repository.dart';
-import 'repositories/planning_repository.dart';
-import 'repositories/insights_repository.dart';
-import 'repositories/journal_repository.dart';
-import 'repositories/backup_repository.dart';
+import 'package:knotes/core/contracts/app_repositories.dart' as contracts;
+import 'package:knotes/core/database/database_backup.dart';
+import 'package:knotes/core/database/database_context.dart';
+import 'package:knotes/core/database/database_schema.dart';
+import 'package:knotes/core/database/repositories/preferences_repository.dart';
+import 'package:knotes/core/database/repositories/accounts_repository.dart';
+import 'package:knotes/core/database/repositories/budget_repository.dart';
+import 'package:knotes/core/database/repositories/ledger_repository.dart';
+import 'package:knotes/core/database/repositories/planning_repository.dart';
+import 'package:knotes/core/database/repositories/insights_repository.dart';
+import 'package:knotes/core/database/repositories/journal_repository.dart';
+import 'package:knotes/core/database/repositories/backup_repository.dart';
 
-export '../../features/bodega/models/spending_summary.dart'
+export 'package:knotes/features/bodega/models/spending_summary.dart'
     show DailySpend, CategoryBreakdown;
 
 class DatabaseService extends DatabaseContext
@@ -38,13 +40,21 @@ class DatabaseService extends DatabaseContext
         contracts.JournalRepository,
         contracts.SettingsRepository {
   static DatabaseService instance = DatabaseService._internal();
-  DatabaseService._internal() : _path = null, factory = null, credentials = const SecureCredentialStore();
-  DatabaseService.atPath(this._path, {this.factory, CredentialStore? credentials}) : credentials = credentials ?? const SecureCredentialStore();
+  DatabaseService._internal()
+    : _path = null,
+      factory = null,
+      credentials = const SecureCredentialStore();
+  DatabaseService.atPath(
+    this._path, {
+    this.factory,
+    CredentialStore? credentials,
+  }) : credentials = credentials ?? const SecureCredentialStore();
   @override
   final CredentialStore credentials;
   final String? _path;
   final DatabaseFactory? factory;
   Future<Database>? _opening;
+  Future<void>? _recovery;
 
   Database? _database;
   final ValueNotifier<int> changeNotifier = ValueNotifier<int>(0);
@@ -58,7 +68,43 @@ class DatabaseService extends DatabaseContext
   }
 
   @override
+  DatabaseFactory get databaseFactory =>
+      factory ??
+      (Platform.isLinux || Platform.isWindows || Platform.isMacOS
+          ? databaseFactoryFfi
+          : mobile.databaseFactorySqflitePlugin);
+
+  @override
   Future<Database> get database async {
+    while (_recovery != null) {
+      await _recovery;
+    }
+    return _openDatabase();
+  }
+
+  @override
+  Future<void> runDatabaseRecovery(
+    Future<void> Function(Future<void> Function()) operation,
+  ) async {
+    while (_recovery != null) {
+      await _recovery;
+    }
+    final completed = Completer<void>();
+    _recovery = completed.future;
+    try {
+      try {
+        await _opening;
+      } catch (_) {}
+      await operation(() async {
+        await _openDatabase();
+      });
+    } finally {
+      _recovery = null;
+      completed.complete();
+    }
+  }
+
+  Future<Database> _openDatabase() async {
     if (_database != null) return _database!;
     try {
       _database = await (_opening ??= _initDatabase());
@@ -72,11 +118,15 @@ class DatabaseService extends DatabaseContext
   @override
   Future<String> resolveDatabasePath() async {
     if (_path != null) return _path;
-    return p.join(
-      (await getApplicationDocumentsDirectory()).path,
-      'kwall',
-      'kwall.db',
-    );
+    final documents = (await getApplicationDocumentsDirectory()).path;
+    final current = p.join(documents, 'knotes', 'knotes.db');
+    if (await File(current).exists()) return current;
+    // Keep existing databases and their adjacent recovery copies together.
+    final legacyDirectory = Directory(p.join(documents, 'kwall'));
+    if (await legacyDirectory.exists()) {
+      return p.join(legacyDirectory.path, 'kwall.db');
+    }
+    return current;
   }
 
   @override
@@ -113,11 +163,7 @@ class DatabaseService extends DatabaseContext
       await dir.create(recursive: true);
     }
 
-    final dbFactory =
-        factory ??
-        (Platform.isLinux || Platform.isWindows || Platform.isMacOS
-            ? databaseFactoryFfi
-            : mobile.databaseFactorySqflitePlugin);
+    final dbFactory = databaseFactory;
     if (dbPath != inMemoryDatabasePath && await File(dbPath).exists()) {
       try {
         final previous = await dbFactory.openDatabase(
@@ -142,12 +188,12 @@ class DatabaseService extends DatabaseContext
 
           final detectedVersion =
               appSettingsVersion != null && appSettingsVersion > version
-                  ? appSettingsVersion
-                  : version;
+              ? appSettingsVersion
+              : version;
 
           if (detectedVersion > DatabaseBackup.version) {
             throw StateError(
-              'Esta base de datos (v$detectedVersion) no es compatible con tu versión actual de kwall (v${DatabaseBackup.version}). No se puede restaurar automáticamente.',
+              'Esta base de datos (v$detectedVersion) no es compatible con tu versión actual de knotes (v${DatabaseBackup.version}). No se puede restaurar automáticamente.',
             );
           }
           if (version < DatabaseBackup.version) {

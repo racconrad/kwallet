@@ -1,11 +1,12 @@
-import '../currency_snapshot.dart';
+import 'package:knotes/core/database/currency_snapshot.dart';
+
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../features/bodega/models/budget_model.dart';
-import '../../../features/bodega/models/finance_overview.dart';
-import '../../../features/journal/models/journal_models.dart';
-import '../database_context.dart';
+import 'package:knotes/features/bodega/models/budget_model.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/core/database/database_context.dart';
 
 mixin BudgetRepository on DatabaseContext {
   Future<void> saveBudget({
@@ -21,7 +22,11 @@ mixin BudgetRepository on DatabaseContext {
 
   Future<double> getSpentBetween(DateTime start, DateTime end) async {
     final db = await database;
-    return CurrencySnapshot.sum(db, "type = 'expense' AND date >= ? AND date < ?", [dayKey(start), dayKey(end)]);
+    return CurrencySnapshot.sum(
+      db,
+      "type = 'expense' AND date >= ? AND date < ?",
+      [dayKey(start), dayKey(end)],
+    );
   }
 
   Future<Map<BudgetPeriod, double>> getPeriodSpending(DateTime date) async {
@@ -77,25 +82,31 @@ mixin BudgetRepository on DatabaseContext {
 
   Future<double> getMonthlySpentTotal(int month, int year) async {
     final db = await database;
-    return CurrencySnapshot.sum(db, "type = 'expense' AND date >= ? AND date < ?", [DateTime(year, month).toIso8601String(), DateTime(year, month + 1).toIso8601String()]);
+    return CurrencySnapshot.sum(
+      db,
+      "type = 'expense' AND date >= ? AND date < ?",
+      [
+        DateTime(year, month).toIso8601String(),
+        DateTime(year, month + 1).toIso8601String(),
+      ],
+    );
   }
 
   Future<Map<BudgetPeriod, double>> getBudgetAllocations(DateTime date) async {
     final db = await database;
-    final result = <BudgetPeriod, double>{};
-    for (final period in BudgetPeriod.values) {
-      final rows = await db.query(
-        'budget_allocations',
-        where: 'period_key = ?',
-        whereArgs: [
-          '${period.name}:${dayKey(periodRange(period, date).start)}',
-        ],
-      );
-      if (rows.isNotEmpty) {
-        result[period] = (rows.first['amount'] as num).toDouble();
-      }
-    }
-    return result;
+    final keys = {
+      for (final period in BudgetPeriod.values)
+        '${period.name}:${dayKey(periodRange(period, date).start)}': period,
+    };
+    final rows = await db.query(
+      'budget_allocations',
+      where: 'period_key IN (${List.filled(keys.length, '?').join(',')})',
+      whereArgs: keys.keys.toList(),
+    );
+    return {
+      for (final row in rows)
+        keys[row['period_key']]!: (row['amount'] as num).toDouble(),
+    };
   }
 
   Future<void> allocateBudget(

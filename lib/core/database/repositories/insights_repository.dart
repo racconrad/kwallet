@@ -1,7 +1,7 @@
-import '../currency_snapshot.dart';
-import '../../../features/bodega/models/spending_summary.dart';
-import '../../../features/bodega/models/category_model.dart';
-import '../database_context.dart';
+import 'package:knotes/core/database/currency_snapshot.dart';
+import 'package:knotes/features/bodega/models/spending_summary.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/core/database/database_context.dart';
 
 mixin InsightsRepository on DatabaseContext {
   Future<List<DailySpend>> getSpendingSeries({
@@ -45,49 +45,6 @@ mixin InsightsRepository on DatabaseContext {
           amount: amounts[d.toIso8601String().substring(0, 10)] ?? 0,
         ),
     ];
-  }
-
-  Future<List<DailySpend>> getDailySpendingLast7Days() async {
-    final db = await database;
-    final now = DateTime.now();
-    final List<DailySpend> result = [];
-
-    const weekdays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
-    for (int i = 6; i >= 0; i--) {
-      final targetDate = now.subtract(Duration(days: i));
-      final start = DateTime(
-        targetDate.year,
-        targetDate.month,
-        targetDate.day,
-        0,
-        0,
-        0,
-      ).toIso8601String();
-      final total = await CurrencySnapshot.sum(
-        db,
-        "type = 'expense' AND date >= ? AND date < ?",
-        [
-          start,
-          DateTime(
-            targetDate.year,
-            targetDate.month,
-            targetDate.day + 1,
-          ).toIso8601String(),
-        ],
-      );
-      final dayLabel = weekdays[targetDate.weekday - 1];
-
-      result.add(
-        DailySpend(
-          date: targetDate,
-          dayLabel: i == 0 ? 'Hoy' : dayLabel,
-          amount: total,
-        ),
-      );
-    }
-
-    return result;
   }
 
   Future<List<CategoryBreakdown>> getCategorySpendingBreakdown(

@@ -3,11 +3,14 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 
-import '../models/pet_species.dart';
+import 'package:knotes/core/models/pet_species.dart';
+import 'package:knotes/core/services/pet_atlas.dart';
 
 /// Renders the same atlas cells and coat filter used by the in-app companion.
 /// Cache one sprite pack; state updates only send the pose and direction.
 class WidgetPetRenderer {
+  // 4x a 64px cell: Android scales this down, so the pixel art stays crisp.
+  static const _size = 256.0;
   static String? _cacheKey;
   static Future<Map<String, String>>? _cache;
   static Future<Map<String, String>> render(
@@ -34,8 +37,10 @@ class WidgetPetRenderer {
     int xp,
   ) async {
     final style = settings['pet_style'];
-    final custom = style == 'custom' ? settings['pet_image_data'] : null;
-    final bytes = custom != null && custom.length <= 5600000
+    final data = style == 'custom' ? settings['pet_image_data'] : null;
+    final custom = data != null && data.length <= 5600000 ? data : null;
+    final layout = custom == null ? await PetAtlas.loadLayout() : null;
+    final bytes = custom != null
         ? base64Decode(custom)
         : (await rootBundle.load(PetSpeciesCatalog.resolveAsset(style, xp: xp)))
               .buffer
@@ -50,7 +55,7 @@ class WidgetPetRenderer {
         'walk': 4,
         'run': 5,
         'sleep': 6,
-        'curious': 7,
+        'curious': 1,
         'celebrate': 8,
         'relax': 9,
         'grabbed': 8,
@@ -69,17 +74,21 @@ class WidgetPetRenderer {
             image.height.toDouble(),
           );
           final ratio = image.width / image.height;
-          final width = ratio > 1 ? 128.0 : 128 * ratio;
-          final height = ratio > 1 ? 128 / ratio : 128.0;
+          final width = ratio > 1 ? _size : _size * ratio;
+          final height = ratio > 1 ? _size / ratio : _size;
           target = ui.Rect.fromLTWH(
-            (128 - width) / 2,
-            (128 - height) / 2,
+            (_size - width) / 2,
+            (_size - height) / 2,
             width,
             height,
           );
         } else {
-          source = ui.Rect.fromLTWH(0, entry.value * 32.0, 32, 32);
-          target = const ui.Rect.fromLTWH(0, 0, 128, 128);
+          source = layout!.frameRect(
+            species: PetSpeciesCatalog.get(style).species,
+            stage: PetGrowthStage.fromXp(xp),
+            row: entry.value,
+          );
+          target = const ui.Rect.fromLTWH(0, 0, _size, _size);
           // Match ColorFiltered after scaling the source pixel art.
           canvas.saveLayer(
             target,
@@ -89,7 +98,7 @@ class WidgetPetRenderer {
         canvas.drawImageRect(image, source, target, paint);
         if (custom == null) canvas.restore();
         final picture = recorder.endRecording();
-        final frame = await picture.toImage(128, 128);
+        final frame = await picture.toImage(_size.toInt(), _size.toInt());
         picture.dispose();
         final data = await frame.toByteData(format: ui.ImageByteFormat.png);
         frame.dispose();

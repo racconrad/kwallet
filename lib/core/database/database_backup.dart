@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseBackup {
-  static const version = 8;
+  static const version = 10;
   static const tables = [
     'accounts',
     'categories',
@@ -20,6 +20,7 @@ class DatabaseBackup {
     'personal_notes',
     'habits',
     'habit_logs',
+    'goals',
     'reward_events',
     'account_currency_history',
     'global_currency_rates',
@@ -37,6 +38,7 @@ class DatabaseBackup {
     'global_currency_rates',
     'planned_expense_payments',
     'budget_allocation_history',
+    'goals',
     'habit_logs',
     'reward_events',
     'transactions',
@@ -77,7 +79,7 @@ class DatabaseBackup {
           : rows;
     }
     return const JsonEncoder.withIndent('  ').convert({
-      'app': 'kwall',
+      'app': 'knotes',
       'version': schemaVersion,
       'exported_at': DateTime.now().toUtc().toIso8601String(),
       'checksum': _digest(data),
@@ -88,15 +90,15 @@ class DatabaseBackup {
   static Map<String, List<Map<String, Object?>>> decode(String source) {
     final raw = jsonDecode(source);
     if (raw is! Map ||
-        raw['app'] != 'kwall' ||
+        !const ['knotes', 'kwall'].contains(raw['app']) ||
         raw['version'] is! int ||
         raw['data'] is! Map) {
-      throw const FormatException('El archivo no es un respaldo de kwall.');
+      throw const FormatException('El archivo no es un respaldo de knotes.');
     }
     final schemaVersion = raw['version'] as int;
     if (schemaVersion < 1 || schemaVersion > version) {
       throw const FormatException(
-        'Este respaldo requiere otra versión de kwall. Actualiza la app antes de restaurarlo.',
+        'Este respaldo requiere otra versión de knotes. Actualiza la app antes de restaurarlo.',
       );
     }
     final data = raw['data'] as Map;
@@ -113,7 +115,11 @@ class DatabaseBackup {
     }
     if (schemaVersion >= 6 &&
         tables
-            .where((t) => t != 'user_currencies')
+            .where(
+              (t) =>
+                  t != 'user_currencies' &&
+                  (schemaVersion >= 9 || t != 'goals'),
+            )
             .any((table) => data[table] is! List)) {
       throw const FormatException('El respaldo está incompleto.');
     }
@@ -280,6 +286,15 @@ class DatabaseBackup {
         throw const FormatException('Registro de hábito inválido.');
       }
     }
+    for (final row in result['goals']!) {
+      if (!['habits', 'tasks', 'manual'].contains(row['kind']) ||
+          row['target'] is! int ||
+          (row['target'] as int) <= 0 ||
+          (row['progress'] as int? ?? 0) < 0 ||
+          (row['habit_id'] != null && !habits.contains(row['habit_id']))) {
+        throw const FormatException('Meta inválida.');
+      }
+    }
     for (final row in result['personal_notes']!) {
       final items = jsonDecode(row['items'] as String);
       if (!['note', 'list'].contains(row['kind']) ||
@@ -288,9 +303,19 @@ class DatabaseBackup {
             (item) =>
                 item is! Map ||
                 item['text'] is! String ||
+                (item.containsKey('id') &&
+                    (item['id'] is! String ||
+                        (item['id'] as String).isEmpty)) ||
                 item['done'] is! bool,
           )) {
         throw const FormatException('Lista personal inválida.');
+      }
+      final itemIds = items
+          .where((item) => item['id'] != null)
+          .map((item) => item['id'])
+          .toList();
+      if (itemIds.toSet().length != itemIds.length) {
+        throw const FormatException('Elementos de lista duplicados.');
       }
     }
     for (final table in result.entries) {
@@ -303,6 +328,8 @@ class DatabaseBackup {
           'day',
           'period_start',
           'voided_at',
+          'start_day',
+          'end_day',
         ]) {
           if (row[field] != null &&
               (row[field] is! String ||

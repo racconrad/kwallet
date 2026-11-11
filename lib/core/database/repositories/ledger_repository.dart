@@ -1,9 +1,9 @@
-import '../currency_snapshot.dart';
-import '../../../features/bodega/models/transaction_record.dart';
-import '../../../features/bodega/models/transaction_filter.dart';
-import '../../../features/bodega/models/monthly_movement_summary.dart';
-import '../transaction_writer.dart';
-import '../database_context.dart';
+import 'package:knotes/core/database/currency_snapshot.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/features/bodega/models/transaction_filter.dart';
+import 'package:knotes/features/bodega/models/monthly_movement_summary.dart';
+import 'package:knotes/core/database/transaction_writer.dart';
+import 'package:knotes/core/database/database_context.dart';
 
 mixin LedgerRepository on DatabaseContext {
   Future<List<TransactionRecord>> getTransactions({

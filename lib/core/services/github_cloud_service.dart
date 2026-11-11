@@ -16,13 +16,13 @@ class GitHubUser {
   });
 
   factory GitHubUser.fromJson(Map<String, dynamic> json) => GitHubUser(
-        login: json['login'] as String? ?? '',
-        name: (json['name'] as String?)?.isNotEmpty == true
-            ? json['name'] as String
-            : (json['login'] as String? ?? ''),
-        avatarUrl: json['avatar_url'] as String? ?? '',
-        htmlUrl: json['html_url'] as String? ?? '',
-      );
+    login: json['login'] as String? ?? '',
+    name: (json['name'] as String?)?.isNotEmpty == true
+        ? json['name'] as String
+        : (json['login'] as String? ?? ''),
+    avatarUrl: json['avatar_url'] as String? ?? '',
+    htmlUrl: json['html_url'] as String? ?? '',
+  );
 }
 
 /// Resultado de una sincronización a un Gist de GitHub.
@@ -38,14 +38,15 @@ class GitHubGistSyncResult {
   });
 }
 
-/// Servicio en Dart puro para sincronizar respaldos de kwall con GitHub Secret Gists.
+/// Servicio en Dart puro para sincronizar respaldos de knotes con GitHub Secret Gists.
 class GitHubCloudService {
   final String baseUrl;
   final HttpClient Function()? clientFactory;
 
-  static const String backupFilename = 'kwall-backup.json';
+  static const String backupFilename = 'knotes-backup.json';
+  static const String _legacyBackupFilename = 'kwall-backup.json';
   static const String gistDescription =
-      'kwall - Respaldo seguro en la nube (Gist Secreto)';
+      'knotes - Respaldo seguro en la nube (Gist Secreto)';
 
   GitHubCloudService({
     this.baseUrl = 'https://api.github.com',
@@ -63,11 +64,15 @@ class GitHubCloudService {
   }) async {
     final client = _createClient();
     try {
-      final uri = path.startsWith('http') ? Uri.parse(path) : Uri.parse('$baseUrl$path');
-      if (uri.scheme != 'https' || uri.host != Uri.parse(baseUrl).host) throw const FormatException('Destino no permitido');
+      final uri = path.startsWith('http')
+          ? Uri.parse(path)
+          : Uri.parse('$baseUrl$path');
+      if (uri.scheme != 'https' || uri.host != Uri.parse(baseUrl).host) {
+        throw const FormatException('Destino no permitido');
+      }
       final request = await client.openUrl(method, uri);
       request.followRedirects = false;
-      request.headers.set('User-Agent', 'kwall-app');
+      request.headers.set('User-Agent', 'knotes-app');
       request.headers.set('Authorization', 'Bearer $token');
       request.headers.set('Accept', 'application/vnd.github+json');
       request.headers.set('X-GitHub-Api-Version', '2022-11-28');
@@ -117,7 +122,7 @@ class GitHubCloudService {
     return GitHubUser.fromJson(response);
   }
 
-  /// Busca si el usuario ya posee un Gist secreto previo con el respaldo de kwall.
+  /// Busca si el usuario ya posee un Gist secreto previo con el respaldo de knotes.
   Future<String?> findBackupGist(String token) async {
     final response = await _request(
       method: 'GET',
@@ -128,7 +133,9 @@ class GitHubCloudService {
     for (final item in gists) {
       if (item is Map) {
         final files = item['files'];
-        if (files is Map && files.containsKey(backupFilename)) {
+        if (files is Map &&
+            (files.containsKey(backupFilename) ||
+                files.containsKey(_legacyBackupFilename))) {
           return item['id'] as String?;
         }
       }
@@ -177,7 +184,8 @@ class GitHubCloudService {
 
     final id = response['id'] as String? ?? cleanGistId ?? '';
     final htmlUrl = response['html_url'] as String? ?? '';
-    final updatedAt = DateTime.tryParse(response['updated_at'] as String? ?? '') ??
+    final updatedAt =
+        DateTime.tryParse(response['updated_at'] as String? ?? '') ??
         DateTime.now();
 
     return GitHubGistSyncResult(
@@ -199,23 +207,31 @@ class GitHubCloudService {
     );
 
     final files = response['files'] as Map<String, dynamic>?;
-    final file = files?[backupFilename] as Map<String, dynamic>?;
+    final file =
+        (files?[backupFilename] ?? files?[_legacyBackupFilename])
+            as Map<String, dynamic>?;
     if (file == null) {
       throw const FormatException(
-          'No se encontró el archivo kwall-backup.json en el Gist.');
+        'No se encontró el archivo knotes-backup.json en el Gist.',
+      );
     }
 
     if (file['truncated'] == true && file['raw_url'] != null) {
       final client = _createClient();
       try {
         final rawUri = Uri.parse(file['raw_url'] as String);
-        if (rawUri.scheme != 'https' || rawUri.host != 'gist.githubusercontent.com') throw const FormatException('Destino no permitido');
+        if (rawUri.scheme != 'https' ||
+            rawUri.host != 'gist.githubusercontent.com') {
+          throw const FormatException('Destino no permitido');
+        }
         final request = await client.getUrl(rawUri);
         request.followRedirects = false;
-        request.headers.set('User-Agent', 'kwall-app');
+        request.headers.set('User-Agent', 'knotes-app');
         request.headers.set('Authorization', 'Bearer ${token.trim()}');
         final rawResponse = await request.close();
-        if (rawResponse.statusCode != 200) throw const HttpException('No se pudo descargar el respaldo');
+        if (rawResponse.statusCode != 200) {
+          throw const HttpException('No se pudo descargar el respaldo');
+        }
         return await rawResponse.transform(utf8.decoder).join();
       } finally {
         client.close();

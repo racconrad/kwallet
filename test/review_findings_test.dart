@@ -1,19 +1,19 @@
-import 'package:kwall/core/database/database_backup.dart';
+import 'package:knotes/core/database/database_backup.dart';
 
 import 'dart:io';
 
-import 'package:kwall/features/bodega/models/transaction_filter.dart';
-import 'package:kwall/features/journal/models/journal_models.dart';
-import 'package:kwall/core/services/credential_store.dart';
+import 'package:knotes/features/bodega/models/transaction_filter.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/core/services/credential_store.dart';
 
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kwall/core/database/database_service.dart';
-import 'package:kwall/features/bodega/models/account.dart';
-import 'package:kwall/features/bodega/models/transaction_record.dart';
-import 'package:kwall/features/bodega/models/front_pending_item.dart';
-import 'package:kwall/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/core/database/database_service.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/features/bodega/models/front_pending_item.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -213,7 +213,13 @@ void main() {
         )).single.amount,
         20,
       );
-      expect((await service.getDailySpendingLast7Days()).last.amount, 20);
+      expect(
+        (await service.getSpendingSeries(
+          monthly: false,
+          date: now,
+        )).firstWhere((d) => d.date.day == now.day).amount,
+        20,
+      );
     },
   );
   test(
@@ -296,7 +302,7 @@ void main() {
     },
   );
   test('Version 4 migration preserves legacy credited amounts and creates recovery', () async {
-    final dir = await Directory.systemTemp.createTemp('kwall-v4-');
+    final dir = await Directory.systemTemp.createTemp('knotes-v4-');
     addTearDown(() => dir.delete(recursive: true));
     final path = '${dir.path}/legacy.db';
     final old = DatabaseService.atPath(
@@ -361,7 +367,7 @@ void main() {
   });
 
   test('Version 1 schema migrates with data and automatic recovery', () async {
-    final dir = await Directory.systemTemp.createTemp('kwall-v1-');
+    final dir = await Directory.systemTemp.createTemp('knotes-v1-');
     addTearDown(() => dir.delete(recursive: true));
     final path = '${dir.path}/legacy.db';
     final old = await databaseFactoryFfiNoIsolate.openDatabase(path);
@@ -380,6 +386,38 @@ void main() {
       'color_value': 0,
       'created_at': '2026-01-01',
     });
+    await old.insert('categories', {
+      'id': 'food',
+      'name': 'Comida',
+      'type': 'expense',
+      'icon_key': 'restaurant',
+      'color_value': 0,
+    });
+    await old.insert('transactions', {
+      'id': 'tx1',
+      'account_id': 'cash',
+      'category_id': 'food',
+      'amount': 23.0,
+      'type': 'expense',
+      'date': '2026-01-02T10:00:00.000',
+      'created_at': '2026-01-02T10:00:00.000',
+    });
+    await old.insert('budgets', {
+      'id': 'b1',
+      'month': 1,
+      'year': 2026,
+      'monthly_limit': 500.0,
+      'created_at': '2026-01-01',
+    });
+    await old.insert('kitty_profile', {
+      'id': 'kitty',
+      'name': 'Michi',
+      'level': 2,
+      'exp': 40,
+      'mood': 'happy',
+      'happiness': 80,
+      'last_interacted': '2026-01-01',
+    });
     await old.setVersion(1);
     await old.close();
     final migrated = DatabaseService.atPath(
@@ -389,7 +427,9 @@ void main() {
     final opened = await migrated.database;
     addTearDown(opened.close);
     expect(await opened.getVersion(), DatabaseBackup.version);
-    expect((await migrated.getAccounts()).single.openingBalance, 123);
+    expect((await migrated.getAccounts()).single.openingBalance, 146);
+    expect(await migrated.getMonthlySpentTotal(1, 2026), 23);
+    expect((await opened.query('budget_allocations')).single['amount'], 500.0);
     expect(await migrated.getRecoveryFiles(), hasLength(1));
     await migrated.verifyDataIntegrity();
   });

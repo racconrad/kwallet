@@ -1,12 +1,13 @@
-import '../currency_snapshot.dart';
+import 'package:knotes/core/database/currency_snapshot.dart';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../features/bodega/models/planned_expense.dart';
-import '../../../features/bodega/models/quick_expense.dart';
-import '../../../features/bodega/models/transaction_record.dart';
-import '../transaction_writer.dart';
-import '../database_context.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/models/quick_expense.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/core/database/transaction_writer.dart';
+import 'package:knotes/core/database/database_context.dart';
 
 mixin PlanningRepository on DatabaseContext {
   Future<void> payPlannedExpense(
@@ -31,12 +32,27 @@ mixin PlanningRepository on DatabaseContext {
       String? txId;
       double paidAmount = plan.amount;
       if (plan.amount > 0) {
-        final sourceRows = plan.accountId == null ? <Map<String, Object?>>[] : await txn.query('accounts', where: 'id = ?', whereArgs: [plan.accountId]);
-        final targetRows = await txn.query('accounts', where: 'id = ?', whereArgs: [accountId]);
+        final sourceRows = plan.accountId == null
+            ? <Map<String, Object?>>[]
+            : await txn.query(
+                'accounts',
+                where: 'id = ?',
+                whereArgs: [plan.accountId],
+              );
+        final targetRows = await txn.query(
+          'accounts',
+          where: 'id = ?',
+          whereArgs: [accountId],
+        );
         if (targetRows.isEmpty) throw StateError('Selecciona una cuenta');
         final snapshot = await CurrencySnapshot.read(txn);
-        final sourceCurrency = sourceRows.firstOrNull?['currency'] as String? ?? snapshot.base;
-        paidAmount = snapshot.convert(plan.amount, sourceCurrency, targetRows.single['currency'] as String);
+        final sourceCurrency =
+            sourceRows.firstOrNull?['currency'] as String? ?? snapshot.base;
+        paidAmount = snapshot.convert(
+          plan.amount,
+          sourceCurrency,
+          targetRows.single['currency'] as String,
+        );
         txId = const Uuid().v4();
         await TransactionWriter.insert(
           txn,
@@ -65,10 +81,7 @@ mixin PlanningRepository on DatabaseContext {
       });
 
       final next = plan.nextDate(plan.dueDate);
-      final updated = plan.copyWith(
-        dueDate: next,
-        isCompleted: next == null,
-      );
+      final updated = plan.copyWith(dueDate: next, isCompleted: next == null);
       await txn.update(
         'planned_expenses',
         updated.toMap(),

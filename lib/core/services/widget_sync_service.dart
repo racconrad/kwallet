@@ -1,14 +1,14 @@
-import 'widget_pet_renderer.dart';
+import 'package:knotes/core/services/widget_pet_renderer.dart';
 
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'package:knotes/core/theme/knotes_palette.dart';
+
 class WidgetSyncService {
-  static const MethodChannel _channel = MethodChannel(
-    'com.kwallet.raccon/widget',
-  );
+  static const MethodChannel _channel = MethodChannel('com.knotes.app/widget');
 
   static int _generation = 0;
   static String _pose = 'idle';
@@ -62,7 +62,7 @@ class WidgetSyncService {
         'pending_habits': pendingHabits,
         'status_message': statusMessage,
         'pet_style': petStyle ?? 'classic',
-        'theme_palette': themePalette ?? 'forest',
+        'theme_palette': themePalette ?? KnotesPalette.fallback,
         'widget_bg_mode': widgetBgMode ?? 'default',
         'widget_bg_color': ?widgetBgColor,
       });

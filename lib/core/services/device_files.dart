@@ -17,7 +17,7 @@ class NativeDeviceFiles implements DeviceFiles {
         fileName: name,
         bytes: Uint8List.fromList(utf8.encode(content)),
         mimeType: 'application/json',
-        dialogTitle: 'Guardar respaldo de kwall',
+        dialogTitle: 'Guardar respaldo de knotes',
       ) !=
       null;
   @override
@@ -25,7 +25,7 @@ class NativeDeviceFiles implements DeviceFiles {
     final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['json'],
-      dialogTitle: 'Elegir respaldo de kwall',
+      dialogTitle: 'Elegir respaldo de knotes',
     );
     return file == null ? null : utf8.decode(await file.readAsBytes());
   }

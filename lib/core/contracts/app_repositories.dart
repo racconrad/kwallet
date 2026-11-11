@@ -1,19 +1,19 @@
-import '../../features/bodega/models/spending_summary.dart';
+import 'package:knotes/features/bodega/models/spending_summary.dart';
 
 import 'package:flutter/foundation.dart';
 
-import '../../features/bodega/models/account.dart';
-import '../../features/bodega/models/budget_model.dart';
-import '../../features/bodega/models/category_model.dart';
-import '../../features/bodega/models/finance_overview.dart';
-import '../../features/bodega/models/planned_expense.dart';
-import '../../features/bodega/models/quick_expense.dart';
-import '../../features/bodega/models/transaction_filter.dart';
-import '../../features/bodega/models/monthly_movement_summary.dart';
-import '../../features/bodega/models/transaction_record.dart';
-import '../../features/journal/models/journal_models.dart';
-import '../../features/bodega/models/front_pending_item.dart';
-import '../models/recovery_copy.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/budget_model.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/models/quick_expense.dart';
+import 'package:knotes/features/bodega/models/transaction_filter.dart';
+import 'package:knotes/features/bodega/models/monthly_movement_summary.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/bodega/models/front_pending_item.dart';
+import 'package:knotes/core/models/recovery_copy.dart';
 
 abstract interface class Repository {
   Listenable get changes;
@@ -124,8 +124,14 @@ abstract interface class JournalRepository implements Repository {
     String iconKey,
     int colorValue,
     String timeBlock,
+    String? reminderTime,
+    String? reminderDays,
   });
   Future<void> deleteHabit(String id);
+  Future<List<Goal>> getGoals();
+  Future<void> saveGoal(Goal goal);
+  Future<void> markGoal(String id, {int delta = 1});
+  Future<void> deleteGoal(String id);
   Future<void> logHabitDays(
     Iterable<String> habitIds,
     Iterable<DateTime> days, {
@@ -147,9 +153,20 @@ abstract interface class SettingsRepository implements Repository {
   Future<void> saveGitHubToken(String? token);
   Future<Map<String, String>> getSettings();
   Future<void> saveSettings(Map<String, String> values);
+  Future<void> finishWelcome({
+    required Map<String, String> settings,
+    required Map<String, String> currencies,
+    Account? account,
+    List<CategoryModel> categories = const [],
+    List<QuickExpense> quickExpenses = const [],
+    Map<String, String> habits = const {},
+    String? habitReminderTime,
+    List<PersonalNote> notes = const [],
+  });
   Future<String> exportFullDataAsJson();
   Future<Map<String, int>> inspectBackup(String content);
   Future<void> importFullDataFromJson(String content);
+  Future<void> importRecoveryBackup(String content);
   Future<List<RecoveryCopy>> getRecoveryCopies();
   Future<String> readRecoveryCopy(String id);
   Future<Map<String, double>> getCurrencyRates();
@@ -164,6 +181,7 @@ abstract interface class SettingsRepository implements Repository {
   Future<void> saveUserCurrency(String code, [String name = '']);
   Future<void> deleteUserCurrency(String code);
   Future<bool> hasRecoveryCopies();
+  Future<bool> ensureDailySnapshot();
   Future<bool> restoreLatestRecoveryCopy();
   Future<void> repairOrResetDatabase();
   Future<String> checkDatabaseIntegrity();
