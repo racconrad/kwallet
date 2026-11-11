@@ -6,15 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kwall/app/app_dependencies.dart';
-import 'package:kwall/app/app_scope.dart';
-import 'package:kwall/core/database/database_service.dart';
-import 'package:kwall/core/theme/kwall_theme.dart';
-import 'package:kwall/core/services/device_files.dart';
-import 'package:kwall/core/widgets/currency_selector.dart';
-import 'package:kwall/features/bodega/presentation/add_account_dialog.dart';
-import 'package:kwall/features/bodega/view_models/account_editor_view_model.dart';
-import 'package:kwall/features/welcome/view_models/launch_view_model.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/app/app_scope.dart';
+import 'package:knotes/core/database/database_service.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/core/widgets/currency_selector.dart';
+import 'package:knotes/features/bodega/presentation/add_account_dialog.dart';
+import 'package:knotes/features/bodega/view_models/account_editor_view_model.dart';
+import 'package:knotes/features/welcome/view_models/launch_view_model.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -30,7 +30,7 @@ void main() {
         await service.saveUserCurrency('USD', 'Dólar estadounidense');
         await service.saveUserCurrency('NIO', 'Córdoba');
         await service.setCurrencyRate(currency: 'NIO', rate: 0.025);
-        if (const bool.fromEnvironment('KWALL_CAPTURE')) {
+        if (const bool.fromEnvironment('KNOTES_CAPTURE')) {
           final config = File('.dart_tool/package_config.json').absolute;
           final packages =
               (jsonDecode(await config.readAsString()) as Map)['packages']
@@ -63,7 +63,7 @@ void main() {
         for (final mode in ['light', 'dark']) {
           await tester.pumpWidget(const SizedBox.shrink());
           tester.view.physicalSize = size;
-          KwallTheme.configure({'theme_mode': mode}, Brightness.light);
+          KnotesTheme.configure({'theme_mode': mode}, Brightness.light);
           await tester.pumpWidget(
             AppScope(
               dependencies: AppDependencies(
@@ -73,7 +73,7 @@ void main() {
                 files: NativeDeviceFiles(),
               ),
               child: MaterialApp(
-                theme: KwallTheme.expressiveTheme,
+                theme: KnotesTheme.expressiveTheme,
                 home: RepaintBoundary(
                   key: key,
                   child: const Scaffold(
@@ -104,7 +104,7 @@ void main() {
           );
           expect(field.initialValue, 'NIO');
           expect(tester.takeException(), isNull);
-          if (const bool.fromEnvironment('KWALL_CAPTURE')) {
+          if (const bool.fromEnvironment('KNOTES_CAPTURE')) {
             final boundary =
                 key.currentContext!.findRenderObject()!
                     as RenderRepaintBoundary;
@@ -123,7 +123,7 @@ void main() {
           }
         }
       }
-      KwallTheme.configure({'theme_mode': 'light'}, Brightness.light);
+      KnotesTheme.configure({'theme_mode': 'light'}, Brightness.light);
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
@@ -185,9 +185,9 @@ void main() {
       );
       addTearDown(() async => (await service.database).close());
 
-      // Initial user currencies have default currency '$'
+      // Fresh installs start without user data.
       final initial = await service.getUserCurrencies();
-      expect(initial.containsKey('\$'), isTrue);
+      expect(initial, isEmpty);
 
       // Save custom currencies: one with name, one without
       await service.saveUserCurrency('EUR', 'Euro');
@@ -205,14 +205,14 @@ void main() {
     },
   );
 
-  test('Auto theme (system) is default in KwallTheme', () {
-    KwallTheme.configure({}, Brightness.light);
-    expect(KwallTheme.mode, 'system');
-    expect(KwallTheme.isDark, isFalse);
+  test('Auto theme (system) is default in KnotesTheme', () {
+    KnotesTheme.configure({}, Brightness.light);
+    expect(KnotesTheme.mode, 'system');
+    expect(KnotesTheme.isDark, isFalse);
 
-    KwallTheme.configure({}, Brightness.dark);
-    expect(KwallTheme.mode, 'system');
-    expect(KwallTheme.isDark, isTrue);
+    KnotesTheme.configure({}, Brightness.dark);
+    expect(KnotesTheme.mode, 'system');
+    expect(KnotesTheme.isDark, isTrue);
   });
 
   test(
@@ -253,6 +253,66 @@ void main() {
       await editorModel.loadCurrencies();
       expect(editorModel.currencyOptions, equals(['CAD', 'EUR', 'USD']));
       expect(editorModel.currencyNames['EUR'], 'Euro');
+    },
+  );
+  testWidgets(
+    'First account after skipped setup requires a user-defined currency',
+    (tester) async {
+      sqfliteFfiInit();
+      final service = DatabaseService.atPath(
+        inMemoryDatabasePath,
+        factory: databaseFactoryFfiNoIsolate,
+      );
+      final dependencies = AppDependencies(
+        finance: service,
+        journal: service,
+        settings: service,
+        files: NativeDeviceFiles(),
+      );
+      await tester.pumpWidget(
+        AppScope(
+          dependencies: dependencies,
+          child: MaterialApp(
+            theme: KnotesTheme.expressiveTheme,
+            home: const Scaffold(body: AddAccountDialog()),
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 80)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(CurrencySelector), findsNothing);
+      await tester.ensureVisible(find.text('Añadir moneda'));
+      await tester.tap(find.text('Añadir moneda'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Añadir moneda'));
+      await tester.pumpAndSettle();
+      expect(find.text('Escribe el nombre de la moneda.'), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Símbolo'),
+        'TOK',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nombre'),
+        'Mis fichas',
+      );
+      tester.testTextInput.hide();
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Añadir moneda'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(CurrencySelector), findsOneWidget);
+      expect(find.text('TOK Mis fichas'), findsOneWidget);
+      expect(await tester.runAsync(service.getUserCurrencies), {
+        'TOK': 'Mis fichas',
+      });
+      expect(await tester.runAsync(service.getCurrencyRates), isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(service.closeAndReset);
     },
   );
 }
