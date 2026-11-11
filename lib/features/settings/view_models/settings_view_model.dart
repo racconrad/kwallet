@@ -1,9 +1,9 @@
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/models/backup_preview.dart';
-import '../../../core/models/recovery_copy.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../../../core/services/device_files.dart';
-import '../../../core/services/github_cloud_service.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/models/backup_preview.dart';
+import 'package:knotes/core/models/recovery_copy.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/core/services/github_cloud_service.dart';
 
 class SettingsViewModel extends ViewModel {
   final SettingsRepository repository;
@@ -24,11 +24,8 @@ class SettingsViewModel extends ViewModel {
   String get githubLastSync => settings['github_last_sync'] ?? '';
   String? _pendingRestore;
 
-  SettingsViewModel(
-    this.repository,
-    this.files, [
-    GitHubCloudService? cloud,
-  ]) : cloud = cloud ?? GitHubCloudService();
+  SettingsViewModel(this.repository, this.files, [GitHubCloudService? cloud])
+    : cloud = cloud ?? GitHubCloudService();
   Future<void> load() async {
     final request = beginRequest();
     try {
@@ -70,6 +67,7 @@ class SettingsViewModel extends ViewModel {
       return false;
     }
   }
+
   Future<bool> save({
     required String currency,
     List<String>? referenceCurrencies,
@@ -78,16 +76,17 @@ class SettingsViewModel extends ViewModel {
     String rateText = '',
     required String petName,
   }) {
-    if (currency.trim().isEmpty) {
-      return Future.value(fail('Revisa el símbolo de la moneda dominante.'));
-    }
-    final refCurrenciesStr = (referenceCurrencies != null && referenceCurrencies.isNotEmpty)
-        ? referenceCurrencies.map((c) => c.trim()).where((c) => c.isNotEmpty).join(',')
+    final refCurrenciesStr =
+        (referenceCurrencies != null && referenceCurrencies.isNotEmpty)
+        ? referenceCurrencies
+              .map((c) => c.trim())
+              .where((c) => c.isNotEmpty)
+              .join(',')
         : (mirrorEnabled && mirror.trim().isNotEmpty ? mirror.trim() : '');
 
     return perform(
       () => _write({
-        'currency': currency.trim(),
+        if (currency.trim().isNotEmpty) 'currency': currency.trim(),
         'reference_currencies': refCurrenciesStr,
         'mirror_currency': '',
         'mirror_rate': '',
@@ -179,7 +178,7 @@ class SettingsViewModel extends ViewModel {
       final content = await repository.exportFullDataAsJson();
       saved = await files.saveBackup(
         content,
-        'kwall-${DateTime.now().toIso8601String().substring(0, 10)}.json',
+        'knotes-${DateTime.now().toIso8601String().substring(0, 10)}.json',
       );
     }, failure: 'No se pudo guardar el respaldo. Reintenta.');
     return ok && saved;
@@ -240,7 +239,9 @@ class SettingsViewModel extends ViewModel {
       });
       return true;
     } catch (_) {
-      fail('No pudimos validar tu token de GitHub. Revisa que tenga permiso "gist".');
+      fail(
+        'No pudimos validar tu token de GitHub. Revisa que tenga permiso "gist".',
+      );
       return false;
     } finally {
       _githubBusy = false;
@@ -334,8 +335,11 @@ class SettingsViewModel extends ViewModel {
   }, failure: 'No se pudieron abrir las copias de recuperación.');
   Future<bool> choosePet(String style) async {
     if (disposed) return false;
-    settings =
-        Map.unmodifiable({...settings, 'pet_style': style, 'pet_image': ''});
+    settings = Map.unmodifiable({
+      ...settings,
+      'pet_style': style,
+      'pet_image': '',
+    });
     changed();
     try {
       await repository.saveSettings({'pet_style': style, 'pet_image': ''});
@@ -348,6 +352,7 @@ class SettingsViewModel extends ViewModel {
       return false;
     }
   }
+
   Future<bool> uploadPet() async {
     var selected = false;
     final ok = await perform(

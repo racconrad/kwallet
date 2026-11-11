@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
 
 class StreaksSettingsTile extends StatelessWidget {
   final Map<String, String> settings;
@@ -21,9 +21,11 @@ class StreaksSettingsTile extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            disabled ? Icons.timer_off_outlined : Icons.local_fire_department_rounded,
+            disabled
+                ? Icons.timer_off_outlined
+                : Icons.local_fire_department_rounded,
             size: 20,
-            color: disabled ? KwallTheme.textSecondary : KwallTheme.accent,
+            color: disabled ? KnotesTheme.textSecondary : KnotesTheme.accent,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -32,7 +34,7 @@ class StreaksSettingsTile extends StatelessWidget {
               children: [
                 Text(
                   'Desactivar rachas',
-                  style: KwallTheme.fontTitle.copyWith(fontSize: 16),
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 16),
                 ),
                 Text(
                   disabled
@@ -40,7 +42,7 @@ class StreaksSettingsTile extends StatelessWidget {
                       : 'Contadores de racha activos en tus hábitos',
                   style: TextStyle(
                     fontSize: 12,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                   ),
                 ),
               ],
@@ -48,7 +50,7 @@ class StreaksSettingsTile extends StatelessWidget {
           ),
           Switch(
             value: disabled,
-            activeThumbColor: KwallTheme.accent,
+            activeThumbColor: KnotesTheme.accent,
             onChanged: (val) => onToggle('disable_streaks', val.toString()),
           ),
         ],

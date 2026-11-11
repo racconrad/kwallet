@@ -1,8 +1,8 @@
-import '../../../../core/models/currency_conversion.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
 
 class CurrencyRateDialog extends StatefulWidget {
   final String currency;
@@ -62,7 +62,10 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
     final val = double.tryParse(
       _rateController.text.trim().replaceAll(',', '.'),
     );
-    if (val == null || !val.isFinite || val <= 0) return;
+    if (val == null || !val.isFinite || val <= 0) {
+      setState(() => _error = 'Escribe una tasa mayor que cero.');
+      return;
+    }
     setState(() => _saving = true);
     try {
       await widget.onSave(val, _notesController.text.trim());
@@ -93,7 +96,7 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
               ),
             Text(
               '1 ${CurrencyConversion.symbol(widget.currency)} =',
-              style: TextStyle(fontSize: 13, color: KwallTheme.textSecondary),
+              style: TextStyle(fontSize: 13, color: KnotesTheme.textSecondary),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -127,7 +130,7 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Historial de tasas', style: KwallTheme.fontTitle),
+                  Text('Historial de tasas', style: KnotesTheme.fontTitle),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, size: 18),
                     onPressed: () => setState(() => _showHistory = false),
@@ -142,7 +145,7 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
                   'Sin cambios registrados aún.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                   ),
                 )
               else
@@ -162,7 +165,7 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: KwallTheme.surfaceContainer.withValues(
+                        color: KnotesTheme.surfaceContainer.withValues(
                           alpha: 0.5,
                         ),
                         borderRadius: BorderRadius.circular(8),
@@ -185,7 +188,7 @@ class _CurrencyRateDialogState extends State<CurrencyRateDialog> {
                             date,
                             style: TextStyle(
                               fontSize: 10,
-                              color: KwallTheme.textSecondary,
+                              color: KnotesTheme.textSecondary,
                             ),
                           ),
                         ],
