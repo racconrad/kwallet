@@ -1,5 +1,5 @@
-import '../core/contracts/app_repositories.dart';
-import '../core/mvvm/view_model.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
 
 class AppViewModel extends ViewModel {
   final SettingsRepository repository;

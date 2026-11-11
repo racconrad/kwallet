@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'app/app_dependencies.dart';
-import 'app/app_scope.dart';
-import 'app/app_view_model.dart';
-import 'core/theme/kwall_theme.dart';
-import 'features/welcome/presentation/launch_screen.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/app/app_scope.dart';
+import 'package:knotes/app/app_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/welcome/presentation/launch_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const KwallApp());
+  runApp(const KnotesApp());
 }
 
-class KwallApp extends StatefulWidget {
+class KnotesApp extends StatefulWidget {
   final AppDependencies? dependencies;
-  const KwallApp({super.key, this.dependencies});
+  const KnotesApp({super.key, this.dependencies});
   @override
-  State<KwallApp> createState() => _KwallAppState();
+  State<KnotesApp> createState() => _KnotesAppState();
 }
 
-class _KwallAppState extends State<KwallApp> with WidgetsBindingObserver {
+class _KnotesAppState extends State<KnotesApp> with WidgetsBindingObserver {
   late final _dependencies = widget.dependencies ?? AppDependencies.local();
   late final AppViewModel _model = _dependencies.app();
   @override
@@ -31,7 +31,7 @@ class _KwallAppState extends State<KwallApp> with WidgetsBindingObserver {
   }
 
   void _appearance() {
-    KwallTheme.configure(
+    KnotesTheme.configure(
       _model.settings,
       WidgetsBinding.instance.platformDispatcher.platformBrightness,
     );
@@ -49,18 +49,18 @@ class _KwallAppState extends State<KwallApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<int>(
-    valueListenable: KwallTheme.revision,
+    valueListenable: KnotesTheme.revision,
     builder: (_, value, child) => AppScope(
       dependencies: _dependencies,
       child: MaterialApp(
-        title: 'kwall',
+        title: 'knotes',
         debugShowCheckedModeBanner: false,
-        theme: KwallTheme.expressiveTheme,
+        theme: KnotesTheme.expressiveTheme,
         locale: const Locale('es'),
         supportedLocales: const [Locale('es'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         builder: (context, child) => AnimatedTheme(
-          data: KwallTheme.expressiveTheme,
+          data: KnotesTheme.expressiveTheme,
           duration: const Duration(milliseconds: 280),
           curve: Curves.easeInOut,
           child: child ?? const SizedBox.shrink(),

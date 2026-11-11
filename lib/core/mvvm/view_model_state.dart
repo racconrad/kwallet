@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_dependencies.dart';
-import '../../app/app_scope.dart';
-import 'view_model.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/app/app_scope.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
 
 abstract class ViewModelState<W extends StatefulWidget, V extends ViewModel>
     extends State<W> {
