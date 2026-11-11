@@ -1,0 +1,23 @@
+{
+  "source_grid": [
+    32,
+    32
+  ],
+  "export_cell": [
+    64,
+    64
+  ],
+  "export_scale": 2,
+  "sampling": "nearest-neighbor",
+  "outline": "one logical pixel / two native pixels",
+  "logical_ground_row": 28,
+  "native_ground_row": 57,
+  "palette_policy": "One shared 16-color palette; each species keeps a distinct silhouette and accent (cat tabby stripes, rat round pink ears, raccoon mask and ringed tail, opossum white face, rock moss, plant leaves, golem glowing eyes).",
+  "runtime_sheet": [
+    512,
+    640
+  ],
+  "rows": 10,
+  "frames_per_row": 8,
+  "style": "Chibi: oversized front-facing head, small body, 2x2 eyes with a glint; simple 3-tone volume lit from the top-left."
+}

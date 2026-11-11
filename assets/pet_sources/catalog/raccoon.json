@@ -1,0 +1,157 @@
+{
+  "kind": "quadruped",
+  "parts": {
+    "head": [
+      ".KK.....KK.",
+      "KWLK...KLDK",
+      "KLDKKKKKDNK",
+      "KSSWWSWWSDK",
+      "KNNNNSNNNNK",
+      "KNWKNSNWKNK",
+      "KNKKNNNKKNK",
+      "KSWWWKWWWDK",
+      ".KDWWWWWDK.",
+      "..KKKKKKK.."
+    ],
+    "sit": [
+      ".KSWWSNK.",
+      "KSSWWSDNK",
+      "KSDDDDDNK",
+      "KNNKNKNNK",
+      "KKKKKKKKK"
+    ],
+    "tail": [
+      ".KKK.",
+      "KLLLK",
+      "KNNNK",
+      "KLLLK",
+      "KNNNK",
+      "KLLSK",
+      "KKKK."
+    ],
+    "walk": [
+      ".KKKKKKKK.",
+      "KSSSSSSSSK",
+      "KDDDDDDDNK",
+      "KNNNNNNNNK"
+    ],
+    "walk_tail": [
+      ".KKK..",
+      "KLLLK.",
+      "KNNNK.",
+      "KLLLK.",
+      "KNNNKK",
+      ".KLLLL"
+    ],
+    "sleep": [
+      "..KKKKKKKK..",
+      ".KSSSSSSSSK.",
+      "KSDDDDDDDDNK",
+      "KDDDDDDDDNNK",
+      ".KKKKKKKKKK."
+    ],
+    "sleep_tail": [
+      "KKKKKKK",
+      "KLNLNLK",
+      "KKKKKKK"
+    ],
+    "paw": [
+      "KKK",
+      "KNK",
+      "KKK"
+    ],
+    "feet_0": [
+      "KNNNNNNNNK",
+      ".KNK..KNK.",
+      ".KKK..KKK."
+    ],
+    "feet_1": [
+      "KNNNNNNNNK",
+      "KNK....KNK",
+      "KKK....KKK"
+    ],
+    "feet_2": [
+      "KNNNNNNNNK",
+      "..KNK.KNK.",
+      "..KKK.KKK."
+    ],
+    "feet_3": [
+      "KNNNNNNNNK",
+      ".KNK.KNK..",
+      ".KKK.KKK.."
+    ]
+  },
+  "anchors": {
+    "head": [
+      11,
+      16
+    ],
+    "sit": [
+      12,
+      24
+    ],
+    "tail": [
+      21,
+      19
+    ],
+    "walk_head": [
+      16,
+      16
+    ],
+    "walk": [
+      10,
+      23
+    ],
+    "walk_tail": [
+      7,
+      19
+    ],
+    "feet": [
+      10,
+      26
+    ],
+    "sleep": [
+      9,
+      24
+    ],
+    "sleep_head": [
+      17,
+      19
+    ]
+  },
+  "eyes": [
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      6
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      7,
+      5
+    ],
+    [
+      7,
+      6
+    ],
+    [
+      8,
+      5
+    ],
+    [
+      8,
+      6
+    ]
+  ],
+  "eye_fill": "N"
+}

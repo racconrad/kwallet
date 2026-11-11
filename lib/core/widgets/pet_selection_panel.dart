@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../models/pet_species.dart';
-import '../theme/kwall_theme.dart';
-import 'kitty_companion.dart';
+import 'package:knotes/core/models/pet_species.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
 
 class PetSelectionPanel extends StatefulWidget {
   final String selectedStyle;
@@ -27,7 +27,6 @@ class _PetSelectionPanelState extends State<PetSelectionPanel> {
   @override
   void initState() {
     super.initState();
-    // Default species filter based on initial selected style
     final currentDef = PetSpeciesCatalog.get(widget.selectedStyle);
     _filterSpecies = currentDef.species;
   }
@@ -47,7 +46,6 @@ class _PetSelectionPanelState extends State<PetSelectionPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Species filter & Random picker
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -79,15 +77,12 @@ class _PetSelectionPanelState extends State<PetSelectionPanel> {
           ),
         ),
         const SizedBox(height: 12),
-
-        // Pet style cards
         Wrap(
           spacing: 8,
           runSpacing: 8,
           alignment: WrapAlignment.center,
           children: [
-            for (final style in styles)
-              _buildStyleTile(context, style),
+            for (final style in styles) _buildStyleTile(context, style),
           ],
         ),
       ],
@@ -101,16 +96,18 @@ class _PetSelectionPanelState extends State<PetSelectionPanel> {
       selected: isSelected,
       label: '${style.species.label} ${style.name}',
       child: Material(
-        color: isSelected ? KwallTheme.accentLight : KwallTheme.surfaceContainer,
+        color: isSelected
+            ? KnotesTheme.accentLight
+            : KnotesTheme.surfaceContainer,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
           side: BorderSide(
-            color: isSelected ? KwallTheme.accent : Colors.transparent,
+            color: isSelected ? KnotesTheme.accent : Colors.transparent,
             width: 1.5,
           ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
           onTap: () {
             HapticFeedback.selectionClick();
             widget.onSelectStyle(style.key);
@@ -136,7 +133,7 @@ class _PetSelectionPanelState extends State<PetSelectionPanel> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? KwallTheme.accent : null,
+                    color: isSelected ? KnotesTheme.accent : null,
                   ),
                 ),
               ],
