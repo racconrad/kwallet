@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/pet_species.dart';
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/kitty_companion.dart';
+import 'package:knotes/core/models/pet_species.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
 
 class AdoptionPicker extends StatelessWidget {
   final String selected;
@@ -36,7 +36,7 @@ class AdoptionPicker extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           current.species.label,
-          style: TextStyle(color: KwallTheme.textSecondary, fontSize: 13),
+          style: TextStyle(color: KnotesTheme.textSecondary, fontSize: 13),
         ),
         if (PetSpeciesCatalog.forSpecies(current.species).length > 1) ...[
           const SizedBox(height: 12),
@@ -77,11 +77,11 @@ class AdoptionPicker extends StatelessWidget {
     child: Tooltip(
       message: label,
       child: Material(
-        color: active ? KwallTheme.accentLight : KwallTheme.surfaceContainer,
+        color: active ? KnotesTheme.accentLight : KnotesTheme.surfaceContainer,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(species ? 24 : 14),
           side: BorderSide(
-            color: active ? KwallTheme.accent : Colors.transparent,
+            color: active ? KnotesTheme.accent : Colors.transparent,
             width: 1.5,
           ),
         ),

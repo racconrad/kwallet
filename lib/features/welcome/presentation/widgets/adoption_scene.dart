@@ -4,8 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/kitty_companion.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
 
 /// A quiet first meeting, using the actual baby sprite the user is adopting.
 class AdoptionScene extends StatefulWidget {
@@ -81,7 +81,7 @@ class _AdoptionSceneState extends State<AdoptionScene>
                   width: width * .70,
                   height: height * .88,
                   decoration: BoxDecoration(
-                    color: KwallTheme.accentLight,
+                    color: KnotesTheme.accentLight,
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(width),
                       bottom: const Radius.circular(28),
@@ -95,7 +95,7 @@ class _AdoptionSceneState extends State<AdoptionScene>
                   width: width * .78,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: KwallTheme.accent.withValues(alpha: .13),
+                    color: KnotesTheme.accent.withValues(alpha: .13),
                     borderRadius: const BorderRadius.all(
                       Radius.elliptical(140, 28),
                     ),
@@ -109,7 +109,7 @@ class _AdoptionSceneState extends State<AdoptionScene>
                   angle: -.35,
                   child: Icon(
                     Icons.eco_outlined,
-                    color: KwallTheme.accent,
+                    color: KnotesTheme.accent,
                     size: 32,
                   ),
                 ),
@@ -121,7 +121,7 @@ class _AdoptionSceneState extends State<AdoptionScene>
                   angle: .25,
                   child: Icon(
                     Icons.eco_outlined,
-                    color: KwallTheme.accent,
+                    color: KnotesTheme.accent,
                     size: 22,
                   ),
                 ),
@@ -173,14 +173,14 @@ class _AdoptionSceneState extends State<AdoptionScene>
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: KwallTheme.surface,
+                      color: KnotesTheme.surface,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       _reacting
                           ? Icons.favorite_rounded
                           : Icons.favorite_border_rounded,
-                      color: KwallTheme.accent,
+                      color: KnotesTheme.accent,
                       size: 25,
                     ),
                   ),

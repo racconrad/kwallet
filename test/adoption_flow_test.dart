@@ -7,23 +7,25 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:kwall/app/app_dependencies.dart';
-import 'package:kwall/app/app_scope.dart';
-import 'package:kwall/core/database/database_service.dart';
-import 'package:kwall/core/services/device_files.dart';
-import 'package:kwall/core/theme/kwall_theme.dart';
-import 'package:kwall/core/widgets/currency_selector.dart';
-import 'package:kwall/features/welcome/presentation/launch_screen.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/app/app_scope.dart';
+import 'package:knotes/core/database/database_service.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
+import 'package:knotes/core/widgets/pet_loading_screen.dart';
+import 'package:knotes/features/welcome/presentation/widgets/adoption_box.dart';
+import 'package:knotes/features/welcome/presentation/launch_screen.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
   testWidgets(
-    'Adoption keeps chosen pet and name, greets, selects currency and starts together',
+    'Box adoption preserves choices and saves only explicitly configured data',
     (tester) async {
       await initializeDateFormatting('es');
-      if (const bool.fromEnvironment('KWALL_CAPTURE')) {
+      if (const bool.fromEnvironment('KNOTES_CAPTURE')) {
         await tester.runAsync(() async {
           final config = File('.dart_tool/package_config.json').absolute;
           final packages =
@@ -68,13 +70,13 @@ void main() {
             files: NativeDeviceFiles(),
           );
           tester.view.physicalSize = size;
-          KwallTheme.configure({'theme_mode': mode}, Brightness.light);
+          KnotesTheme.configure({'theme_mode': mode}, Brightness.light);
           final key = GlobalKey();
           await tester.pumpWidget(
             AppScope(
               dependencies: dependencies,
               child: MaterialApp(
-                theme: KwallTheme.expressiveTheme,
+                theme: KnotesTheme.expressiveTheme,
                 home: RepaintBoundary(
                   key: key,
                   child: MediaQuery(
@@ -91,9 +93,16 @@ void main() {
               ),
             ),
           );
-          await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 50)),
-          );
+          for (
+            var i = 0;
+            i < 20 && find.byType(PetLoadingScreen).evaluate().isNotEmpty;
+            i++
+          ) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 50)),
+            );
+            await tester.pump();
+          }
           await tester.pumpAndSettle();
           Future<void> capture(String page) async {
             await tester.runAsync(
@@ -101,7 +110,7 @@ void main() {
             );
             await tester.pump();
             expect(tester.takeException(), isNull);
-            if (!const bool.fromEnvironment('KWALL_CAPTURE')) return;
+            if (!const bool.fromEnvironment('KNOTES_CAPTURE')) return;
             final boundary =
                 key.currentContext!.findRenderObject()!
                     as RenderRepaintBoundary;
@@ -119,61 +128,182 @@ void main() {
             });
           }
 
+          Future<void> tap(String label) async {
+            await tester.ensureVisible(find.text(label).last);
+            await tester.tap(find.text(label).last);
+            await tester.pumpAndSettle();
+          }
+
+          Future<void> fill(String label, String text) async {
+            final field = find.widgetWithText(TextField, label);
+            await tester.ensureVisible(field);
+            await tester.enterText(field, text);
+            tester.testTextInput.hide();
+            await tester.pumpAndSettle();
+          }
+
           expect(find.text('Hay alguien\nesperándote.'), findsOneWidget);
-          expect(find.textContaining('XP'), findsNothing);
-          await capture('meet');
-          await tester.tap(find.text('Quiero conocerle'));
+          expect(find.byType(KittyCompanionWidget), findsNothing);
+          await capture('box');
+          await tester.tap(find.byType(AdoptionBox));
           await tester.pumpAndSettle();
-          expect(find.text('¿Quién va contigo?'), findsOneWidget);
+          expect(find.byType(KittyCompanionWidget), findsOneWidget);
+          await capture('reveal');
+          await tap('Darle un nombre');
+          await fill('Su nombre', 'Nube');
+          await tap('Personalización avanzada');
+          await tester.ensureVisible(find.byTooltip('Zarigüeya'));
           await tester.tap(find.byTooltip('Zarigüeya'));
           await tester.pumpAndSettle();
-          await capture('choose');
-          await tester.tap(find.text('Este va conmigo'));
-          await tester.pumpAndSettle();
-          await tester.enterText(find.byType(TextField).first, 'Nube');
-          await tester.pumpAndSettle();
-          tester.testTextInput.hide();
-          await tester.pumpAndSettle();
-          await tester.ensureVisible(find.byTooltip('Acariciar a Nube').first);
-          await tester.tap(find.byTooltip('Acariciar a Nube').first);
-          await tester.pumpAndSettle();
-          expect(find.text('Ya te reconoce.'), findsOneWidget);
+          await tap('Cerrar personalización');
           await capture('name');
-          await tester.tap(find.text('Me gusta su nombre'));
+          await tap('Continuar con Nube');
+          expect(find.textContaining('tres áreas'), findsOneWidget);
+          await capture('guide');
+          await tap('Entendido');
+          await capture('path');
+          await tap('Empezar el recorrido');
+          await tap('Añadir mi moneda');
+          await fill('Símbolo', 'C\$');
+          await fill('Nombre', 'Mi córdoba');
+          await tester.tap(find.widgetWithText(FilledButton, 'Añadir moneda'));
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.byType(CurrencySelector));
-          await tester.tap(find.byType(CurrencySelector));
-          await tester.pumpAndSettle();
-          await tester.tap(find.text('C\$ Córdoba').last);
-          await tester.pumpAndSettle();
-          await capture('days');
-          // Native back retains all choices.
-          await tester.binding.handlePopRoute();
-          await tester.pumpAndSettle();
-          expect(find.text('Un nombre.\nUn nuevo amigo.'), findsOneWidget);
-          expect(find.widgetWithText(TextField, 'Nube'), findsOneWidget);
-          await tester.tap(find.text('Me gusta su nombre'));
-          await tester.pumpAndSettle();
-          await tester.tap(find.text('Todo listo'));
-          await tester.pumpAndSettle();
+          await capture('currency');
+          await tap('Usar C\$');
+          await fill('Nombre de la cuenta', 'Mi bolsillo');
+          await fill('Saldo inicial', '250.50');
+          await capture('account');
+          for (var i = 0; i < 3; i++) {
+            await tester.binding.handlePopRoute();
+            await tester.pumpAndSettle();
+          }
+          expect(find.textContaining('tres áreas'), findsOneWidget);
+          await tap('Entendido');
+          await tap('Empezar el recorrido');
+          await tap('Usar C\$');
+          expect(find.widgetWithText(TextField, 'Mi bolsillo'), findsOneWidget);
+          await tap('Continuar con mi cuenta');
+          await fill('Nombre del gasto', 'Mi café');
+          await fill('Importe', '3.5');
+          await fill('Categoría', 'Mis pausas');
+          await tap('Añadir gasto hormiga');
+          await capture('expenses');
+          await tap('Continuar');
+          await fill('Mi hábito', 'Leer por la tarde');
+          await tap('Añadir hábito');
+          await capture('habits');
+          await tap('Continuar');
+          await fill('Mi nota', 'Compras\n- pan\n- leche');
+          await tap('Añadir nota');
+          await capture('notes');
+          await tap('Revisar y empezar');
           expect(find.text('Bienvenido a casa,\nNube.'), findsOneWidget);
+          final before = await tester.runAsync(db.getAccounts);
+          expect(before, isEmpty);
           await capture('home');
-          await tester.tap(find.text('Empezar juntos'));
+          await tap('Empezar juntos');
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 100)),
           );
-          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pump();
           final settings = await tester.runAsync(db.getSettings);
           expect(settings!['pet_style'], 'opossum_classic');
           expect(settings['pet_name'], 'Nube');
-          expect(settings['currency'], 'NIO');
+          expect(settings['currency'], 'C\$');
           expect(settings['notifications_enabled'], 'false');
           expect(settings['welcome_seen'], '1');
+          expect(await tester.runAsync(db.getUserCurrencies), {
+            'C\$': 'Mi córdoba',
+          });
+          expect(await tester.runAsync(db.getCurrencyRates), isEmpty);
+          final accounts = await tester.runAsync(db.getAccounts);
+          expect(accounts!.single.name, 'Mi bolsillo');
+          final notes = await tester.runAsync(db.getNotes);
+          expect(notes!.single.title, 'Compras');
+          expect(notes.single.items.map((i) => i.text), ['pan', 'leche']);
+          expect(accounts.single.balance, 250.50);
+          expect(accounts.single.currency, 'C\$');
+          expect(
+            (await tester.runAsync(db.getQuickExpenses))!.single.title,
+            'Mi café',
+          );
+          expect(
+            (await tester.runAsync(db.getHabits))!.single.title,
+            'Leer por la tarde',
+          );
+          expect(await tester.runAsync(db.getTransactions), isEmpty);
           await tester.pumpWidget(const SizedBox.shrink());
           await tester.runAsync(db.closeAndReset);
         }
       }
-      KwallTheme.configure({'theme_mode': 'light'}, Brightness.light);
+      KnotesTheme.configure({'theme_mode': 'light'}, Brightness.light);
+    },
+  );
+  testWidgets(
+    'Skipping setup enters without creating currencies, accounts or examples',
+    (tester) async {
+      await initializeDateFormatting('es');
+      final db = DatabaseService.atPath(
+        inMemoryDatabasePath,
+        factory: databaseFactoryFfiNoIsolate,
+      );
+      final dependencies = AppDependencies(
+        finance: db,
+        journal: db,
+        settings: db,
+        files: NativeDeviceFiles(),
+      );
+      await tester.pumpWidget(
+        AppScope(
+          dependencies: dependencies,
+          child: MaterialApp(
+            theme: KnotesTheme.expressiveTheme,
+            home: const MediaQuery(
+              data: MediaQueryData(disableAnimations: true),
+              child: LaunchScreen(),
+            ),
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 80)),
+      );
+      await tester.pumpAndSettle();
+      Future<void> tap(String text) async {
+        await tester.tap(find.text(text));
+        await tester.pumpAndSettle();
+      }
+
+      await tap('Abrir la caja');
+      await tap('Darle un nombre');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Su nombre'),
+        'Terra',
+      );
+      tester.testTextInput.hide();
+      await tester.pumpAndSettle();
+      await tap('Continuar con Terra');
+      await tap('Entendido');
+      await tester.ensureVisible(find.text('Inicio rápido · 1 minuto'));
+      await tap('Inicio rápido · 1 minuto');
+      await tap('Empezar rápido');
+      await tap('Omitir por ahora');
+      await tap('Omitir por ahora');
+      expect(find.text('Lo demás, a tu ritmo'), findsOneWidget);
+      await tap('Empezar juntos');
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+      expect((await tester.runAsync(db.getSettings))!['welcome_seen'], '1');
+      expect(await tester.runAsync(db.getUserCurrencies), isEmpty);
+      expect(await tester.runAsync(db.getAccounts), isEmpty);
+      expect(await tester.runAsync(db.getQuickExpenses), isEmpty);
+      expect(await tester.runAsync(db.getHabits), isEmpty);
+      expect(await tester.runAsync(db.getNotes), isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(db.closeAndReset);
     },
   );
 }

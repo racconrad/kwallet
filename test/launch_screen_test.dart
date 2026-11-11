@@ -1,11 +1,32 @@
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/quick_expense.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kwall/core/contracts/app_repositories.dart';
-import 'package:kwall/core/models/recovery_copy.dart';
-import 'package:kwall/core/services/device_files.dart';
-import 'package:kwall/features/welcome/view_models/launch_view_model.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/models/recovery_copy.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/features/welcome/view_models/launch_view_model.dart';
 
 class FakeSettingsRepository implements SettingsRepository {
+  @override
+  Future<void> finishWelcome({
+    required Map<String, String> settings,
+    required Map<String, String> currencies,
+    Account? account,
+    List<CategoryModel> categories = const [],
+    List<QuickExpense> quickExpenses = const [],
+    Map<String, String> habits = const {},
+    String? habitReminderTime,
+    List<PersonalNote> notes = const [],
+  }) async {
+    for (final entry in currencies.entries) {
+      await saveUserCurrency(entry.key, entry.value);
+    }
+    await saveSettings(settings);
+  }
+
   String? _token;
   @override
   Future<String?> getGitHubToken() async => _token;
@@ -36,6 +57,10 @@ class FakeSettingsRepository implements SettingsRepository {
 
   @override
   Future<void> importFullDataFromJson(String content) async {}
+
+  @override
+  Future<void> importRecoveryBackup(String content) =>
+      importFullDataFromJson(content);
 
   @override
   Future<List<RecoveryCopy>> getRecoveryCopies() async => [];
@@ -79,6 +104,9 @@ class FakeSettingsRepository implements SettingsRepository {
 
   @override
   Future<bool> hasRecoveryCopies() async => false;
+
+  @override
+  Future<bool> ensureDailySnapshot() async => false;
 
   @override
   Future<bool> restoreLatestRecoveryCopy() async => true;
@@ -209,7 +237,7 @@ void main() {
       );
       expect(
         vm.diagnosticInfo,
-        contains('no es compatible con tu versión actual de kwall'),
+        contains('no es compatible con tu versión actual de knotes'),
       );
     });
 
@@ -230,10 +258,10 @@ void main() {
     );
 
     test(
-      'importBackup picks backup file, resets vault, imports data and reloads',
+      'importBackup picks backup file, safely imports data and reloads',
       () async {
         final repo = RecoverableSettingsRepository();
-        final fakeFiles = FakeDeviceFiles(backupContent: '{"app":"kwall"}');
+        final fakeFiles = FakeDeviceFiles(backupContent: '{"app":"knotes"}');
         final vm = LaunchViewModel(repo, files: fakeFiles);
 
         await vm.load();
@@ -242,8 +270,8 @@ void main() {
         final imported = await vm.importBackup();
         expect(imported, isTrue);
         expect(vm.ready, isTrue);
-        expect(repo.repairCalled, isTrue);
-        expect(repo.importedContent, '{"app":"kwall"}');
+        expect(repo.repairCalled, isFalse);
+        expect(repo.importedContent, '{"app":"knotes"}');
       },
     );
   });
@@ -253,7 +281,7 @@ class IncompatibleSettingsRepository extends FakeSettingsRepository {
   @override
   Future<Map<String, String>> getSettings() async {
     throw StateError(
-      'Esta base de datos (v99) no es compatible con tu versión actual de kwall (v6). No se puede restaurar automáticamente.',
+      'Esta base de datos (v99) no es compatible con tu versión actual de knotes (v6). No se puede restaurar automáticamente.',
     );
   }
 }
@@ -280,6 +308,9 @@ class FailingSettingsRepository extends FakeSettingsRepository {
 
   @override
   Future<bool> hasRecoveryCopies() async => true;
+
+  @override
+  Future<bool> ensureDailySnapshot() async => false;
 }
 
 class RecoverableSettingsRepository extends FakeSettingsRepository {
@@ -294,6 +325,12 @@ class RecoverableSettingsRepository extends FakeSettingsRepository {
   }
 
   @override
+  Future<void> importRecoveryBackup(String content) async {
+    importedContent = content;
+    failNext = false;
+  }
+
+  @override
   Future<Map<String, String>> getSettings() async {
     if (failNext) {
       throw StateError('Database opening failed');
@@ -303,6 +340,9 @@ class RecoverableSettingsRepository extends FakeSettingsRepository {
 
   @override
   Future<bool> hasRecoveryCopies() async => true;
+
+  @override
+  Future<bool> ensureDailySnapshot() async => false;
 
   @override
   Future<bool> restoreLatestRecoveryCopy() async {

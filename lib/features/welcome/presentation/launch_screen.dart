@@ -2,21 +2,31 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/models/currency_conversion.dart';
-import '../../../core/models/pet_species.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../../../core/services/notification_service.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/currency_selector.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../../../core/widgets/kitty_companion.dart';
-import '../../../core/widgets/pet_loading_screen.dart';
-import '../../bodega/presentation/bodega_screen.dart';
-import '../view_models/launch_view_model.dart';
-import 'widgets/adoption_picker.dart';
-import 'widgets/adoption_scene.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
+import 'package:knotes/core/models/pet_species.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/core/services/notification_service.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/currency_definition_sheet.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
+import 'package:knotes/core/widgets/pet_loading_screen.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/quick_expense.dart';
+import 'package:knotes/features/bodega/presentation/bodega_screen.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/welcome/view_models/launch_view_model.dart';
+import 'package:knotes/features/welcome/presentation/widgets/adoption_box.dart';
+import 'package:knotes/features/welcome/presentation/widgets/adoption_picker.dart';
+import 'package:knotes/features/welcome/presentation/widgets/adoption_scene.dart';
+
+import 'package:knotes/features/welcome/presentation/widgets/launch_ui.dart';
+
+part 'launch_steps.dart';
 
 class LaunchScreen extends StatefulWidget {
   const LaunchScreen({super.key});
@@ -28,139 +38,331 @@ class _LaunchScreenState extends ViewModelState<LaunchScreen, LaunchViewModel> {
   @override
   LaunchViewModel createViewModel(AppDependencies dependencies) =>
       dependencies.launch();
-  final _pages = PageController();
-  final _petName = TextEditingController(text: 'Mishi');
-  String _currency = '\$';
+
+  final _petName = TextEditingController();
+  final _accountName = TextEditingController();
+  final _balance = TextEditingController();
+  final _expenseTitle = TextEditingController();
+  final _expenseAmount = TextEditingController();
+  final _categoryName = TextEditingController();
+  final _habitTitle = TextEditingController();
+  final _accountId = const Uuid().v4();
+  final _accountForm = GlobalKey<FormState>();
+  final _expenseForm = GlobalKey<FormState>();
   final Map<String, String> _currencies = {};
-  final Set<String> _references = {};
+  final List<QuickExpense> _expenses = [];
+  final List<CategoryModel> _categories = [];
+  final Map<String, String> _habits = {};
+  String _currency = '';
   String _style = 'classic';
-  int _step = 0;
+  String _accountType = 'cash';
+  int _index = 0;
+  bool _long = true;
+  final _noteText = TextEditingController();
+  String? _habitReminder = '20:00';
+  final List<String> _notes = [];
+  bool _forward = true;
   bool _initialized = false;
+  bool _opened = false;
+  bool _advanced = false;
   bool _notifications = false;
   bool _requestingPermission = false;
   bool _greeted = false;
   bool _entered = false;
-  String get _name => _petName.text.trim().isEmpty
-      ? PetSpeciesCatalog.get(_style).name
-      : _petName.text.trim();
+  String? _validationError;
+
+  String get _name =>
+      _petName.text.trim().isEmpty ? 'tu compañero' : _petName.text.trim();
   Map<String, String> get _petSettings => {
     ...model.settings,
     'pet_style': _style,
     'pet_name': _name,
   };
-  @override
-  void initState() {
-    super.initState();
-    for (final asset
-        in PetSpeciesCatalog.styles.values
-            .map((s) => PetSpeciesCatalog.resolveAsset(s.key))
-            .toSet()) {
-      KittyCompanionWidget.loadAtlas(asset).ignore();
-    }
-  }
+  bool get _hasAccount => _accountName.text.trim().isNotEmpty;
+  List<_Step> get _steps => _long
+      ? const [
+          _Step.box,
+          _Step.name,
+          _Step.tour,
+          _Step.path,
+          _Step.currency,
+          _Step.account,
+          _Step.expenses,
+          _Step.habits,
+          _Step.notes,
+          _Step.review,
+        ]
+      : const [
+          _Step.box,
+          _Step.name,
+          _Step.tour,
+          _Step.path,
+          _Step.currency,
+          _Step.account,
+          _Step.review,
+        ];
+  _Step get _step => _steps[_index];
+  bool get _optional => const {
+    _Step.currency,
+    _Step.account,
+    _Step.expenses,
+    _Step.habits,
+    _Step.notes,
+  }.contains(_step);
 
   @override
   void onViewModelChanged() {
     if (!_initialized && model.ready) {
       _currencies.addAll(model.userCurrencies);
-      _style = model.settings['pet_style'] ?? 'classic';
-      _petName.text =
-          model.settings['pet_name'] ?? PetSpeciesCatalog.get(_style).name;
-      _currency = model.settings['currency'] ?? '\$';
-      _references.addAll(
-        (model.settings['reference_currencies'] ?? '')
-            .split(',')
-            .map((s) => s.trim())
-            .where((s) => s.isNotEmpty),
-      );
-      _notifications = model.settings['notifications_enabled'] == 'true';
+      _currency =
+          model.settings['currency'] ?? _currencies.keys.firstOrNull ?? '';
+      final species =
+          PetSpecies.values[math.Random().nextInt(PetSpecies.values.length)];
+      _style =
+          model.settings['pet_style'] ??
+          PetSpeciesCatalog.pickRandom(species: species).key;
+      _petName.text = model.settings['pet_name'] ?? '';
+      KittyCompanionWidget.loadAtlas(PetSpeciesCatalog.resolveAsset(_style))
+          .ignore();
       _initialized = true;
     }
   }
 
   @override
   void dispose() {
-    _pages.dispose();
-    _petName.dispose();
+    for (final controller in [
+      _petName,
+      _accountName,
+      _balance,
+      _expenseTitle,
+      _expenseAmount,
+      _categoryName,
+      _habitTitle,
+      _noteText,
+    ]) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  void _go(int step) {
+  void _go(int index) {
     FocusManager.instance.primaryFocus?.unfocus();
     HapticFeedback.selectionClick();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _pages.jumpToPage(step);
+    setState(() {
+      _forward = index > _index;
+      _index = index.clamp(0, _steps.length - 1);
+      _validationError = null;
+    });
+  }
+
+  Duration _motion(int ms) => MediaQuery.disableAnimationsOf(context)
+      ? Duration.zero
+      : Duration(milliseconds: ms);
+
+  void _openBox() {
+    HapticFeedback.lightImpact();
+    setState(() => _opened = true);
+  }
+
+  void _next() {
+    if (_step == _Step.box && !_opened) {
+      _openBox();
+      return;
+    }
+    if (_step == _Step.name && _petName.text.trim().isEmpty) {
+      setState(() => _validationError = 'Escribe un nombre para tu compañero.');
+      return;
+    }
+    if (_step == _Step.account) {
+      if (!_accountForm.currentState!.validate()) return;
+      if (_currency.isEmpty) {
+        setState(
+          () => _validationError =
+              'Elige una moneda en el paso anterior o elige Omitir por ahora.',
+        );
+        return;
+      }
+    }
+    if (_step == _Step.expenses &&
+        [
+          _expenseTitle,
+          _expenseAmount,
+          _categoryName,
+        ].any((c) => c.text.trim().isNotEmpty)) {
+      if (!_addExpense()) return;
+    }
+    if (_step == _Step.habits && _habitTitle.text.trim().isNotEmpty) {
+      _addHabit();
+    }
+    if (_step == _Step.notes && _noteText.text.trim().isNotEmpty) _addNote();
+    if (_step == _Step.review) {
+      _enter();
     } else {
-      _pages.animateToPage(
-        step,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
+      _go(_index + 1);
+    }
+  }
+
+  void _skip() {
+    setState(() {
+      if (_step == _Step.account) {
+        _accountName.clear();
+        _balance.clear();
+        _expenses.clear();
+        _categories.clear();
+        _expenseTitle.clear();
+        _expenseAmount.clear();
+        _categoryName.clear();
+      } else if (_step == _Step.expenses) {
+        _expenses.clear();
+        _categories.clear();
+        _expenseTitle.clear();
+        _expenseAmount.clear();
+        _categoryName.clear();
+      } else if (_step == _Step.habits) {
+        _habits.clear();
+        _habitTitle.clear();
+        _notifications = false;
+      } else if (_step == _Step.notes) {
+        _notes.clear();
+        _noteText.clear();
+      }
+    });
+    _go(_index + 1);
+  }
+
+  Future<void> _addCurrency() async {
+    final result = await defineCurrency(context, existing: _currencies.keys);
+    if (result == null || !mounted) return;
+    setState(() {
+      _currencies[result.$1] = result.$2;
+      if (_currency.isEmpty) _currency = result.$1;
+    });
+  }
+
+  bool _addExpense() {
+    if (!_hasAccount || !_expenseForm.currentState!.validate()) return false;
+    final title = _expenseTitle.text.trim();
+    final categoryName = _categoryName.text.trim();
+    final existing = _categories
+        .where((c) => c.name.toLowerCase() == categoryName.toLowerCase())
+        .firstOrNull;
+    final category =
+        existing ??
+        CategoryModel(
+          id: const Uuid().v4(),
+          name: categoryName,
+          type: 'expense',
+          iconKey: 'bolt',
+          colorValue: KnotesTheme.accent.toARGB32(),
+          isDefault: false,
+        );
+    setState(() {
+      if (existing == null) _categories.add(category);
+      _expenses.add(
+        QuickExpense(
+          id: const Uuid().v4(),
+          title: title,
+          amount: _parseAmount(_expenseAmount.text)!,
+          categoryId: category.id,
+          accountId: _accountId,
+          createdAt: DateTime.now(),
+        ),
+      );
+      _expenseTitle.clear();
+      _expenseAmount.clear();
+      _categoryName.clear();
+    });
+    FocusManager.instance.primaryFocus?.unfocus();
+    return true;
+  }
+
+  void _addHabit() {
+    final title = _habitTitle.text.trim();
+    if (title.isEmpty) return;
+    setState(() {
+      _habits[const Uuid().v4()] = title;
+      _habitTitle.clear();
+    });
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _addNote() {
+    final text = _noteText.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _notes.add(text);
+      _noteText.clear();
+    });
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  Future<void> _pickHabitReminder() async {
+    final parts = (_habitReminder ?? '20:00').split(':');
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: int.tryParse(parts.first) ?? 20,
+        minute: int.tryParse(parts.last) ?? 0,
+      ),
+    );
+    if (time != null && mounted) {
+      setState(
+        () => _habitReminder =
+            '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
       );
     }
   }
 
-  void _choose(String style) {
-    HapticFeedback.selectionClick();
-    setState(() {
-      if (_petName.text.trim().isEmpty ||
-          _petName.text == PetSpeciesCatalog.get(_style).name) {
-        _petName.text = PetSpeciesCatalog.get(style).name;
-      }
-      _style = style;
-      _greeted = false;
-    });
-  }
-
-  void _randomName() {
-    final options = switch (PetSpeciesCatalog.get(_style).species) {
-      PetSpecies.cat => ['Mishi', 'Kuro', 'Copito', 'Simba'],
-      PetSpecies.rat => ['Mimi', 'Quesito', 'Pixie', 'Remi'],
-      PetSpecies.raccoon => ['Pillo', 'Bandit', 'Rocket', 'Mapi'],
-      PetSpecies.opossum => ['Pepita', 'Luna', 'Nube', 'Pipa'],
-      PetSpecies.rock => ['Roco', 'Piedrito', 'Coco', 'Rufi'],
-      PetSpecies.plant => ['Brotito', 'Oliva', 'Hoja', 'Trébol'],
-    };
-    setState(
-      () => _petName.text =
-          (options.where((n) => n != _name).toList()..shuffle(math.Random()))
-              .first,
-    );
-  }
+  double? _parseAmount(String text) =>
+      double.tryParse(text.trim().replaceAll(',', '.'));
 
   Future<void> _enter() async {
     if (model.busy) return;
-    FocusManager.instance.primaryFocus?.unfocus();
-    final references = _references
-        .where(
-          (c) =>
-              CurrencyConversion.code(c) != CurrencyConversion.code(_currency),
-        )
-        .toSet();
-    final selected = {_currency, ...references};
-    String nameFor(String code) =>
-        _currencies.entries
-            .where(
-              (e) =>
-                  CurrencyConversion.code(e.key) ==
-                  CurrencyConversion.code(code),
-            )
-            .firstOrNull
-            ?.value ??
-        '';
     final ok = await model.enter(
       petStyle: _style,
       petName: _name,
-      currency: _currency,
-      currencyName: nameFor(_currency),
-      referenceCurrencies: references.join(','),
-      userCurrencies: {for (final c in selected) c: nameFor(c)},
+      currency: _currency.isEmpty ? null : _currency,
+      currencyName: _currencies[_currency],
+      userCurrencies: _currencies,
+      referenceCurrencies: _currencies.keys
+          .where(
+            (c) =>
+                CurrencyConversion.code(c) !=
+                CurrencyConversion.code(_currency),
+          )
+          .join(','),
       notificationsEnabled: _notifications,
+      account: _hasAccount
+          ? Account(
+              id: _accountId,
+              name: _accountName.text.trim(),
+              type: _accountType,
+              balance: _balance.text.trim().isEmpty
+                  ? 0
+                  : _parseAmount(_balance.text)!,
+              currency: _currency,
+              colorValue: KnotesTheme.accent.toARGB32(),
+              createdAt: DateTime.now(),
+            )
+          : null,
+      quickExpenses: _expenses,
+      categories: _categories
+          .where((c) => _expenses.any((e) => e.categoryId == c.id))
+          .toList(),
+      habits: _habits,
+      habitReminderTime: _notifications ? _habitReminder : null,
+      notes: [
+        for (final text in _notes)
+          ?parseQuickNote(
+            text,
+            id: const Uuid().v4(),
+            newItemId: () => const Uuid().v4(),
+          ),
+      ],
     );
     if (ok && mounted) {
       HapticFeedback.mediumImpact();
       setState(() => _entered = true);
-    } else if (mounted) {
-      showFailure(context, 'No se pudo guardar. Inténtalo otra vez.');
     }
   }
 
@@ -178,7 +380,9 @@ class _LaunchScreenState extends ViewModelState<LaunchScreen, LaunchViewModel> {
     });
     if (!granted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Puedes activarlos después.')),
+        const SnackBar(
+          content: Text('Puedes activarlos después desde Ajustes.'),
+        ),
       );
     }
   }
@@ -199,9 +403,9 @@ class _LaunchScreenState extends ViewModelState<LaunchScreen, LaunchViewModel> {
       );
     }
     return PopScope(
-      canPop: _step == 0,
+      canPop: _index == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && !model.busy) _go(_step - 1);
+        if (!didPop && !model.busy) _go(_index - 1);
       },
       child: Scaffold(
         body: SafeArea(
@@ -216,293 +420,86 @@ class _LaunchScreenState extends ViewModelState<LaunchScreen, LaunchViewModel> {
                       children: [
                         SizedBox(
                           width: 48,
-                          child: _step == 0
+                          child: _index == 0
                               ? null
                               : IconButton(
                                   tooltip: 'Atrás',
                                   onPressed: model.busy
                                       ? null
-                                      : () => _go(_step - 1),
+                                      : () => _go(_index - 1),
                                   icon: const Icon(Icons.arrow_back_rounded),
                                 ),
                         ),
                         Expanded(
-                          child: Center(
-                            child: Semantics(
-                              label: 'Paso ${_step + 1} de 5',
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  for (var i = 0; i < 5; i++)
-                                    AnimatedContainer(
-                                      duration:
-                                          MediaQuery.disableAnimationsOf(
-                                            context,
-                                          )
-                                          ? Duration.zero
-                                          : const Duration(milliseconds: 240),
-                                      width: i == _step ? 24 : 6,
-                                      height: 6,
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: i <= _step
-                                            ? KwallTheme.accent
-                                            : KwallTheme.border.withValues(
-                                                alpha: .3,
-                                              ),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
+                          child: StepProgress(
+                            index: _index,
+                            count: _steps.length,
+                            icon: _step.icon,
+                            label: _step.label,
                           ),
                         ),
-                        const SizedBox(
-                          width: 48,
-                          child: Icon(Icons.pets_outlined, size: 22),
-                        ),
+                        const SizedBox(width: 48),
                       ],
                     ),
                   ),
                   Expanded(
-                    child: PageView(
-                      controller: _pages,
-                      physics: model.busy
-                          ? const NeverScrollableScrollPhysics()
-                          : const PageScrollPhysics(),
-                      onPageChanged: (step) => setState(() => _step = step),
-                      children: [
-                        _page(
+                    child: AnimatedSwitcher(
+                      duration: _motion(300),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      layoutBuilder: (current, previous) => Stack(
+                        fit: StackFit.expand,
+                        children: [...previous, ?current],
+                      ),
+                      transitionBuilder: (child, animation) {
+                        final incoming = child.key == ValueKey(_step);
+                        final dx = (_forward ? 1 : -1) * .08;
+                        return FadeTransition(
+                          opacity: animation,
+                          child: incoming
+                              ? SlideTransition(
+                                  position: Tween(
+                                    begin: Offset(dx, 0),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                )
+                              : child,
+                        );
+                      },
+                      child: SingleChildScrollView(
+                        key: ValueKey(_step),
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const SizedBox(height: 16),
-                            _title('Hay alguien\nesperándote.'),
-                            const SizedBox(height: 10),
-                            _caption('Un pequeño compañero para tus días.'),
-                            const SizedBox(height: 28),
-                            AdoptionScene(
-                              settings: _petSettings,
-                              arriving: true,
-                            ),
-                            const SizedBox(height: 24),
-                            _caption('Crezcan juntos, un día a la vez.'),
+                            for (final (i, child) in _content().indexed)
+                              Reveal(order: i, child: child),
                           ],
                         ),
-                        _page(
-                          children: [
-                            _title('¿Quién va contigo?'),
-                            const SizedBox(height: 8),
-                            _caption('Elige a tu compañero.'),
-                            AdoptionScene(
-                              settings: _petSettings,
-                              activity: PetActivity.curious,
-                            ),
-                            AdoptionPicker(
-                              selected: _style,
-                              onChanged: _choose,
-                            ),
-                          ],
-                        ),
-                        _page(
-                          children: [
-                            _title('Un nombre.\nUn nuevo amigo.'),
-                            AdoptionScene(
-                              settings: _petSettings,
-                              greeted: _greeted,
-                              onGreet: () => setState(() => _greeted = true),
-                            ),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              child: Text(
-                                _greeted
-                                    ? 'Ya te reconoce.'
-                                    : 'Tócalo para saludar.',
-                                key: ValueKey(_greeted),
-                                style: TextStyle(color: KwallTheme.accent),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            TextField(
-                              controller: _petName,
-                              maxLength: 20,
-                              textCapitalization: TextCapitalization.words,
-                              textInputAction: TextInputAction.done,
-                              textAlign: TextAlign.center,
-                              style: KwallTheme.fontTitle.copyWith(
-                                fontSize: 22,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: 'Su nombre',
-                                counterText: '',
-                                suffixIcon: IconButton(
-                                  tooltip: 'Sugerir un nombre',
-                                  onPressed: _randomName,
-                                  icon: const Icon(Icons.casino_outlined),
-                                ),
-                              ),
-                              onChanged: (_) => setState(() {}),
-                            ),
-                            const SizedBox(height: 12),
-                            _caption('Puedes cambiarlo cuando quieras.'),
-                          ],
-                        ),
-                        _page(
-                          children: [
-                            _title('Tus días,\na tu manera.'),
-                            const SizedBox(height: 22),
-                            _dailyIcons(),
-                            const SizedBox(height: 24),
-                            CurrencySelector(
-                              value: _currency,
-                              options: {
-                                _currency,
-                                ..._currencies.keys,
-                                '\$',
-                                'C\$',
-                                '€',
-                                '£',
-                                'L',
-                                'Q',
-                                '₡',
-                              },
-                              currencyNames: _currencies,
-                              label: 'Tu moneda',
-                              onChanged: (value) =>
-                                  setState(() => _currency = value),
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () => _addCurrency(primary: true),
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 18,
-                                  ),
-                                  label: const Text('Otra moneda'),
-                                ),
-                                TextButton.icon(
-                                  onPressed: () => _addCurrency(primary: false),
-                                  icon: const Icon(Icons.add_rounded, size: 18),
-                                  label: const Text('Uso otra también'),
-                                ),
-                              ],
-                            ),
-                            if (_references.isNotEmpty)
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: [
-                                  for (final c in _references)
-                                    InputChip(
-                                      label: Text(
-                                        CurrencyConversion.label(
-                                          c,
-                                          _currencies,
-                                        ),
-                                      ),
-                                      onDeleted: () =>
-                                          setState(() => _references.remove(c)),
-                                    ),
-                                ],
-                              ),
-                            const SizedBox(height: 16),
-                            SwitchListTile.adaptive(
-                              contentPadding: EdgeInsets.zero,
-                              secondary: const Icon(
-                                Icons.notifications_none_rounded,
-                              ),
-                              title: const Text('Un pequeño recordatorio'),
-                              subtitle: const Text('Si tú quieres.'),
-                              value: _notifications,
-                              onChanged: _requestingPermission
-                                  ? null
-                                  : _permission,
-                            ),
-                            const SizedBox(height: 16),
-                            _caption('Lo demás puede esperar.'),
-                          ],
-                        ),
-                        _page(
-                          children: [
-                            _title('Bienvenido a casa,\n$_name.'),
-                            const SizedBox(height: 8),
-                            _caption('Juntos, desde hoy.'),
-                            AdoptionScene(
-                              settings: _petSettings,
-                              activity: PetActivity.celebrate,
-                              greeted: true,
-                            ),
-                            const SizedBox(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.favorite_border_rounded,
-                                  size: 20,
-                                  color: KwallTheme.accent,
-                                ),
-                                const SizedBox(width: 10),
-                                Flexible(
-                                  child: Text(
-                                    'Tus pequeños pasos le ayudarán a crecer.',
-                                    style: TextStyle(
-                                      color: KwallTheme.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 28),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.phonelink_lock_rounded,
-                                  size: 18,
-                                  color: KwallTheme.textSecondary,
-                                ),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    'Guardado en tu teléfono.',
-                                    style: TextStyle(
-                                      color: KwallTheme.textSecondary,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (model.error != null)
+                        if (_validationError != null || model.error != null)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Text(
-                              'No se pudo guardar. Vuelve a intentarlo.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: KwallTheme.expenseRed),
+                              _validationError ?? model.error!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                             ),
                           ),
                         FilledButton.icon(
-                          onPressed: model.busy
+                          onPressed: model.busy || _requestingPermission
                               ? null
-                              : _step == 4
-                              ? _enter
-                              : () => _go(_step + 1),
+                              : _next,
                           icon: model.busy
                               ? const SizedBox.square(
                                   dimension: 18,
@@ -510,24 +507,49 @@ class _LaunchScreenState extends ViewModelState<LaunchScreen, LaunchViewModel> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : Icon(
-                                  _step == 4
-                                      ? Icons.favorite_border_rounded
-                                      : Icons.arrow_forward_rounded,
-                                ),
+                              : Icon(switch (_step) {
+                                  _Step.box when !_opened =>
+                                    Icons.inventory_2_outlined,
+                                  _Step.review => Icons.celebration_rounded,
+                                  _ => Icons.arrow_forward_rounded,
+                                }),
                           label: Text(
                             model.busy
-                                ? 'Un momento…'
+                                ? 'Guardando…'
                                 : switch (_step) {
-                                    0 => 'Quiero conocerle',
-                                    1 => 'Este va conmigo',
-                                    2 => 'Me gusta su nombre',
-                                    3 => 'Todo listo',
-                                    _ => 'Empezar juntos',
+                                    _Step.box =>
+                                      _opened
+                                          ? 'Darle un nombre'
+                                          : 'Abrir la caja',
+                                    _Step.name => 'Continuar con $_name',
+                                    _Step.tour => 'Entendido',
+                                    _Step.currency =>
+                                      _currency.isEmpty
+                                          ? 'Continuar'
+                                          : 'Usar ${CurrencyConversion.symbol(_currency)}',
+                                    _Step.path =>
+                                      _long
+                                          ? 'Empezar el recorrido'
+                                          : 'Empezar rápido',
+                                    _Step.account => 'Continuar con mi cuenta',
+                                    _Step.expenses =>
+                                      _hasAccount
+                                          ? 'Continuar'
+                                          : 'Seguir sin gastos',
+                                    _Step.habits => 'Continuar',
+                                    _Step.notes => 'Revisar y empezar',
+                                    _Step.review => 'Empezar juntos',
                                   },
                           ),
                         ),
-                        if (_step == 0)
+                        if (_optional)
+                          TextButton(
+                            onPressed: model.busy || _requestingPermission
+                                ? null
+                                : _skip,
+                            child: const Text('Omitir por ahora'),
+                          ),
+                        if (_step == _Step.box)
                           TextButton(
                             onPressed: model.busy ? null : model.importBackup,
                             child: const Text('Traer mis datos'),
@@ -544,125 +566,23 @@ class _LaunchScreenState extends ViewModelState<LaunchScreen, LaunchViewModel> {
     );
   }
 
-  Widget _page({required List<Widget> children}) => LayoutBuilder(
-    builder: (context, constraints) => SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minHeight: math.max(0, constraints.maxHeight - 32),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: children,
-        ),
-      ),
-    ),
-  );
-  Widget _title(String text) => Text(
-    text,
-    textAlign: TextAlign.center,
-    style: KwallTheme.fontDisplay.copyWith(fontSize: 32, height: 1.16),
-  );
-  Widget _caption(String text) => Text(
-    text,
-    textAlign: TextAlign.center,
-    style: TextStyle(color: KwallTheme.textSecondary, height: 1.4),
-  );
-  Widget _dailyIcons() => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-      for (final item in [
-        (Icons.account_balance_wallet_outlined, 'Dinero'),
-        (Icons.edit_note_rounded, 'Notas'),
-        (Icons.spa_outlined, 'Hábitos'),
-      ])
-        Expanded(
-          child: Column(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: KwallTheme.accentLight,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(item.$1, size: 28, color: KwallTheme.accent),
-              ),
-              const SizedBox(height: 8),
-              Text(item.$2, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-    ],
-  );
-  Future<void> _addCurrency({required bool primary}) async {
-    final symbol = TextEditingController();
-    final name = TextEditingController();
-    String? error;
-    final value = await showModalBottomSheet<(String, String)>(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, update) => SheetBody(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                primary ? 'Tu moneda' : 'Otra moneda',
-                style: KwallTheme.fontTitle.copyWith(fontSize: 22),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: symbol,
-                maxLength: 8,
-                decoration: const InputDecoration(
-                  labelText: 'Símbolo',
-                  hintText: 'C\$, €, L…',
-                  counterText: '',
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: name,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  hintText: 'Córdoba, Euro…',
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (error != null)
-                Text(error!, style: TextStyle(color: KwallTheme.expenseRed)),
-              FilledButton(
-                onPressed: () {
-                  final code = symbol.text.trim();
-                  if (code.isEmpty || code.contains(',')) {
-                    update(() => error = 'Escribe un símbolo.');
-                    return;
-                  }
-                  Navigator.pop(ctx, (code, name.text.trim()));
-                },
-                child: const Text('Usar esta moneda'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (value != null && mounted) {
-      setState(() {
-        _currencies[value.$1] = value.$2;
-        if (primary) {
-          _currency = value.$1;
-        } else if (CurrencyConversion.code(value.$1) !=
-            CurrencyConversion.code(_currency)) {
-          _references.add(value.$1);
-        }
-      });
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    symbol.dispose();
-    name.dispose();
-  }
+  // Lets the part-file extension rebuild without touching protected setState.
+  void _update(VoidCallback change) => setState(change);
+}
+
+enum _Step {
+  box(Icons.inventory_2_outlined, 'Sorpresa'),
+  name(Icons.badge_outlined, 'Nombre'),
+  tour(Icons.explore_outlined, 'Áreas'),
+  path(Icons.alt_route_rounded, 'Camino'),
+  currency(Icons.currency_exchange_rounded, 'Moneda'),
+  account(Icons.account_balance_wallet_outlined, 'Cuenta'),
+  expenses(Icons.bolt_rounded, 'Gastos'),
+  habits(Icons.local_fire_department_outlined, 'Hábitos'),
+  notes(Icons.sticky_note_2_outlined, 'Notas'),
+  review(Icons.celebration_outlined, 'Listo');
+
+  final IconData icon;
+  final String label;
+  const _Step(this.icon, this.label);
 }
