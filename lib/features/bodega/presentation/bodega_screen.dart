@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../../../core/services/widget_sync_service.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/kitty_companion.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../../../core/widgets/pet_loading_screen.dart';
-import '../../../core/services/notification_service.dart';
-import '../../../core/widgets/juice_widgets.dart';
-import '../../journal/presentation/journal_screen.dart';
-import '../../settings/presentation/settings_screen.dart';
-import '../view_models/home_view_model.dart';
-import '../models/account.dart';
-import 'add_account_dialog.dart';
-import 'add_transaction_sheet.dart';
-import 'budget_sheet.dart';
-import 'finances_screen.dart';
-import 'planned_expenses_screen.dart';
-import 'quick_expenses_sheet.dart';
-import 'widgets/home_dashboard.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/core/services/widget_sync_service.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/pet_loading_screen.dart';
+import 'package:knotes/core/widgets/juice_widgets.dart';
+import 'package:knotes/features/journal/presentation/journal_screen.dart';
+import 'package:knotes/features/settings/presentation/settings_screen.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/presentation/add_account_dialog.dart';
+import 'package:knotes/features/bodega/presentation/add_transaction_sheet.dart';
+import 'package:knotes/features/bodega/presentation/budget_sheet.dart';
+import 'package:knotes/features/bodega/presentation/finances_screen.dart';
+import 'package:knotes/features/bodega/presentation/planned_expenses_screen.dart';
+import 'package:knotes/features/bodega/presentation/quick_expenses_sheet.dart';
+import 'package:knotes/features/bodega/presentation/widgets/home_dashboard.dart';
 
 class BodegaScreen extends StatefulWidget {
   final int initialPage;
@@ -49,10 +48,7 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkWidgetLaunch();
-      _checkDailyRoutineFlow();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkWidgetLaunch());
   }
 
   @override
@@ -67,17 +63,7 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
     if (state == AppLifecycleState.resumed) {
       _home.load();
       _checkWidgetLaunch();
-      _checkDailyRoutineFlow();
     }
-  }
-
-  Future<void> _checkDailyRoutineFlow() async {
-    if (!mounted) return;
-    await NotificationService.checkAndTriggerDailyFlow(
-      petName: _home.settings['pet_name'] ?? 'Mishi',
-      settings: _home.settings,
-      onSaveSetting: _home.saveSetting,
-    );
   }
 
   Future<void> _checkWidgetLaunch() async {
@@ -85,12 +71,26 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
     if (!mounted || route == null) return;
     if (route == 'habits') {
       _openJournal(1);
+    } else if (route == 'agenda') {
+      _navigate(2);
     }
   }
+
+  bool _startApplied = false;
 
   @override
   void onViewModelChanged() {
     if (!mounted) return;
+    if (!_startApplied && _home.budget != null) {
+      _startApplied = true;
+      final start = int.tryParse(_home.settings['start_page'] ?? '');
+      if (widget.initialPage == 0 &&
+          start != null &&
+          start >= 0 &&
+          start <= 3) {
+        _nav = start;
+      }
+    }
     final gained = _home.takeReward();
     if (gained > 0) {
       HapticFeedback.lightImpact();
@@ -168,15 +168,7 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
           builder: (_) => QuickExpensesSheet(controller: _home),
         ),
       ),
-      (
-        Icons.edit_note_rounded,
-        'Nota',
-        () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (_) => const NoteSheet(),
-        ),
-      ),
+      (Icons.edit_note_rounded, 'Nota', () => openNote(context)),
       (Icons.event_outlined, 'Fecha', () => _navigate(2)),
     ];
     showModalBottomSheet(
@@ -187,7 +179,7 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
           children: [
             Text(
               '¿Qué hacemos?',
-              style: KwallTheme.fontTitle.copyWith(fontSize: 22),
+              style: KnotesTheme.fontTitle.copyWith(fontSize: 22),
             ),
             const SizedBox(height: 18),
             LayoutBuilder(
@@ -293,7 +285,7 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
         height: 78,
         notchMargin: 8,
         shape: const CircularNotchedRectangle(),
-        color: KwallTheme.surface,
+        color: KnotesTheme.surface,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
           children: [
@@ -312,7 +304,7 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
     child: Tooltip(
       message: label,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(KnotesTheme.radiusMd),
         onTap: () {
           HapticFeedback.selectionClick();
           _navigate(index);
@@ -330,15 +322,15 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
                 ),
                 decoration: BoxDecoration(
                   color: _nav == index
-                      ? KwallTheme.accentLight
+                      ? KnotesTheme.accentLight
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
                 ),
                 child: Icon(
                   icon,
                   color: _nav == index
-                      ? KwallTheme.accent
-                      : KwallTheme.textSecondary,
+                      ? KnotesTheme.accent
+                      : KnotesTheme.textSecondary,
                 ),
               ),
               const SizedBox(height: 3),
@@ -348,7 +340,7 @@ class _BodegaScreenState extends ViewModelState<BodegaScreen, HomeViewModel>
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: _nav == index ? FontWeight.w700 : FontWeight.w400,
-                  color: KwallTheme.textPrimary,
+                  color: KnotesTheme.textPrimary,
                 ),
               ),
             ],

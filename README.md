@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/media/banner.gif" alt="KWallet — small steps, a fuller life. Money, habits, notes, and a pixel companion." width="100%" />
+<img src="docs/media/banner.gif" alt="knotes: small steps, a fuller life. Money, habits, notes, and a pixel companion." width="100%" />
 
 **A little more clarity. A little more progress. A companion along the way.**
 
@@ -16,9 +16,9 @@ Personal finances, daily habits, and notes in one local-first Flutter app.
 
 </div>
 
-## Meet KWallet
+## Meet knotes
 
-Track what comes in, understand what goes out, and make room for everyday routines. KWallet brings your accounts, spending plans, notes, and habits together while a pixel companion grows with your progress.
+Track what comes in, understand what goes out, and make room for everyday routines. knotes brings your accounts, spending plans, notes, and habits together while a pixel companion grows with your progress.
 
 Your everyday data lives on your device. You can use the app without connecting a GitHub account; cloud backup is optional. The current app interface is in Spanish; this guide is in English.
 
@@ -26,19 +26,19 @@ Your everyday data lives on your device. You can use the app without connecting 
 
 |                     | What you can do                                                                                              |
 | :------------------ | :----------------------------------------------------------------------------------------------------------- |
-| **Money**           | Manage multiple accounts, record income, expenses, and transfers, and organize transactions with categories. |
+| **Money**           | Manage multiple accounts, choose which count toward available funds, record income, expenses, and transfers, and organize transactions with categories. |
 | **Budgets**         | Plan daily, weekly, or monthly spending, with protected balances and planned commitments.                    |
 | **Currencies**      | Choose account currencies and maintain shared manual conversion rates with rate history.                     |
 | **Planning**        | Keep recurring payments and dated commitments on a calendar, then review upcoming cash flow.                 |
-| **Habits**          | Check in, review streaks and past days, group habits by time of day, and record how a day felt.              |
-| **Notes**           | Keep free-form notes and checklists, with target dates for things that need a reminder.                      |
+| **Habits**          | Check in, review current and best streaks, set daily reminders, and chase goals with a deadline (habit check-ins, finished tasks, or a counter you mark). |
+| **Notes**           | Keep notes and checklists, capture one from a single line ("- item" becomes a task), search and filter by pending tasks. |
 | **Companions**      | Earn XP and grow a cat, rat, raccoon, opossum, rock, or plant through baby, adult, and master stages.        |
 | **Personalization** | Choose forest, plum, rose, or honey palettes and light, dark, or system appearance.                          |
-| **Android extras**  | Add a native cat home-screen widget and manage notification preferences.                                     |
-| **Backups**         | Export and restore JSON files, use local recovery copies, or connect optional GitHub Gist backup.            |
+| **Android extras**  | Add a native pet home-screen widget and get scheduled reminders with your own messages, even with the app closed. |
+| **Backups**         | Export and restore JSON files, keep a week of automatic daily copies, or connect optional GitHub Gist backup. |
 
 <div align="center">
-  <img src="docs/media/adult-cat.gif" alt="The original adult cat idles, walks, gets curious, and celebrates." width="160" />
+  <img src="docs/media/adult-cat.gif" alt="The adult cat idles, walks, gets curious, and celebrates." width="160" />
   <br />
 </div>
 
@@ -53,7 +53,7 @@ Your everyday data lives on your device. You can use the app without connecting 
 
 <details>
 <summary><strong>Add the Android widget</strong></summary>
-Long-press an empty area of your Android home screen, open the widget picker, and select the KWallet cat widget.
+Long-press an empty area of your Android home screen, open the widget picker, and select the knotes cat widget.
 </details>
 
 ## Run locally
@@ -61,8 +61,8 @@ Long-press an empty area of your Android home screen, open the widget picker, an
 The repository includes **Android** and **Linux** targets. Use a Flutter SDK that includes Dart **3.13.5 or later within the 3.x series**, matching `pubspec.yaml`.
 
 ```sh
-git clone https://github.com/MagusCat/kwallet.git
-cd kwallet
+git clone https://github.com/MagusCat/kwallet.git knotes
+cd knotes
 flutter doctor
 flutter pub get
 flutter devices
@@ -92,7 +92,11 @@ flutter build apk --release
 flutter build linux --release
 ```
 
+The same commands are available as `make` targets; run `make help` to list them.
+
 The APK is written to `build/app/outputs/flutter-apk/app-release.apk`. Configure your own Android release signing before distribution; the current Gradle configuration uses the debug signing key for release builds.
+
+Increase the build number after `+` in `pubspec.yaml` for each Android update. Universal and per-ABI APKs use that same version code so switching APK formats does not introduce an artificial version jump.
 
 </details>
 
@@ -111,6 +115,8 @@ The APK is written to `build/app/outputs/flutter-apk/app-release.apk`. Configure
 Dependency versions are defined in [`pubspec.yaml`](pubspec.yaml) and resolved in [`pubspec.lock`](pubspec.lock).
 
 ## Data and backups
+
+The app and Dart package are named `knotes`; Android and Linux use `com.knotes.app`. Android treats this package as a separate app from the former `com.kwallet.raccon`: export a JSON backup from the old installation and import it into knotes to transfer your data. Existing `kwall` JSON backups and `kwall-backup.json` GitHub Gists remain readable. On Linux, existing local databases, recovery copies, and keyring credentials keep their original storage identifiers for continuity; new databases use `knotes/knotes.db`.
 
 Everyday records are stored locally in SQLite. Data exports include the app's managed records, and restores validate the backup before replacing data in a transaction. Recovery copies help with database upgrades and failed restores.
 

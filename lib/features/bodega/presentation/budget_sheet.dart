@@ -1,13 +1,15 @@
+import 'package:knotes/core/models/currency_conversion.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/budget_editor_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../models/finance_overview.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/bodega/view_models/budget_editor_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
 
 String periodLabel(BudgetPeriod period) => switch (period) {
   BudgetPeriod.daily => 'Hoy',
@@ -71,12 +73,12 @@ class _BudgetSheetState
         children: [
           Text(
             'Tu presupuesto, a tu ritmo',
-            style: KwallTheme.fontTitle.copyWith(fontSize: 22),
+            style: KnotesTheme.fontTitle.copyWith(fontSize: 22),
           ),
           const SizedBox(height: 8),
           Text(
             periodLabel(widget.period),
-            style: TextStyle(color: KwallTheme.textSecondary),
+            style: TextStyle(color: KnotesTheme.textSecondary),
           ),
           const SizedBox(height: 18),
           SegmentedButton<String>(
@@ -104,10 +106,10 @@ class _BudgetSheetState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              style: KwallTheme.fontDisplay.copyWith(fontSize: 30),
+              style: KnotesTheme.fontDisplay.copyWith(fontSize: 30),
               decoration: InputDecoration(
                 labelText: 'Asignación para este período',
-                prefixText: '${widget.currency} ',
+                prefixText: '${CurrencyConversion.symbol(widget.currency)} ',
               ),
             ),
             Slider(
@@ -135,7 +137,7 @@ class _BudgetSheetState
           ] else ...[
             Text(
               '${_share.round()}% del saldo libre',
-              style: KwallTheme.fontTitle.copyWith(fontSize: 24),
+              style: KnotesTheme.fontTitle.copyWith(fontSize: 24),
             ),
             Slider(
               value: _share,
@@ -148,7 +150,7 @@ class _BudgetSheetState
           ],
           const SizedBox(height: 20),
           if (_error != null)
-            Text(_error!, style: TextStyle(color: KwallTheme.expenseRed)),
+            Text(_error!, style: TextStyle(color: KnotesTheme.expenseRed)),
           FilledButton.icon(
             onPressed: _saving ? null : _save,
             icon: const Icon(Icons.check),

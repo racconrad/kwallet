@@ -1,10 +1,13 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:kwall/core/database/database_backup.dart';
-import 'package:kwall/core/database/database_schema.dart';
-import 'package:kwall/core/database/repositories/currency_rates_repository.dart';
-import 'package:kwall/core/services/notification_service.dart';
+import 'package:knotes/core/database/database_backup.dart';
+import 'package:knotes/core/database/database_schema.dart';
+import 'package:knotes/core/database/repositories/currency_rates_repository.dart';
+import 'package:knotes/core/services/notification_service.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
 
 void main() {
   setUpAll(() {
@@ -15,10 +18,7 @@ void main() {
 
   group('CurrencyRatesRepository Conversion Logic', () {
     const dominant = 'C\$';
-    final rates = <String, double>{
-      'USD': 36.80,
-      'EUR': 40.00,
-    };
+    final rates = <String, double>{'USD': 36.80, 'EUR': 40.00};
 
     test('Same currency returns exact amount', () {
       final res = CurrencyRatesRepository.convert(
@@ -53,17 +53,20 @@ void main() {
       expect(res, closeTo(100.0, 0.001));
     });
 
-    test('Converts between two alternative currencies through dominant currency', () {
-      // 100 EUR = 4000 C$ = 4000 / 36.80 USD = 108.6956 USD
-      final res = CurrencyRatesRepository.convert(
-        100.0,
-        from: 'EUR',
-        to: 'USD',
-        rates: rates,
-        dominantCurrency: dominant,
-      );
-      expect(res, closeTo(108.6956, 0.01));
-    });
+    test(
+      'Converts between two alternative currencies through dominant currency',
+      () {
+        // 100 EUR = 4000 C$ = 4000 / 36.80 USD = 108.6956 USD
+        final res = CurrencyRatesRepository.convert(
+          100.0,
+          from: 'EUR',
+          to: 'USD',
+          rates: rates,
+          dominantCurrency: dominant,
+        );
+        expect(res, closeTo(108.6956, 0.01));
+      },
+    );
   });
 
   group('CurrencyRatesRepository Database and Traceability', () {
@@ -116,16 +119,19 @@ void main() {
   });
 
   group('NotificationService Permissions & Settings Checks', () {
-    test('showNotification returns false when notifications_enabled is false', () async {
-      final res = await NotificationService.showNotification(
-        id: 1,
-        title: 'Test',
-        body: 'Body',
-        type: 'habits',
-        settings: {'notifications_enabled': 'false'},
-      );
-      expect(res, isFalse);
-    });
+    test(
+      'showNotification returns false when notifications_enabled is false',
+      () async {
+        final res = await NotificationService.showNotification(
+          id: 1,
+          title: 'Test',
+          body: 'Body',
+          type: 'habits',
+          settings: {'notifications_enabled': 'false'},
+        );
+        expect(res, isFalse);
+      },
+    );
 
     test('showNotification returns false when category is disabled', () async {
       final resHabits = await NotificationService.showNotification(
@@ -155,7 +161,10 @@ void main() {
 
       final resDayStart = await NotificationService.showDayStartNotification(
         petName: 'Mishi',
-        settings: {'notifications_enabled': 'true', 'notify_day_start': 'false'},
+        settings: {
+          'notifications_enabled': 'true',
+          'notify_day_start': 'false',
+        },
       );
       expect(resDayStart, isFalse);
 
@@ -166,42 +175,98 @@ void main() {
       expect(resDayEnd, isFalse);
     });
 
-    test('checkAndTriggerDailyFlow triggers day start in morning and day end in evening', () async {
-      final savedSettings = <String, String>{};
-      Future<void> save(String k, String v) async {
-        savedSettings[k] = v;
-      }
-
-      // Morning test (9:00 AM)
-      final morning = DateTime(2026, 10, 18, 9, 0);
-      await NotificationService.checkAndTriggerDailyFlow(
-        petName: 'Mishi',
-        settings: {
+    test(
+      'buildReminders schedules custom day, habit, goal and payment reminders',
+      () {
+        final today = DateTime(2026, 10, 18, 9);
+        final settings = {
           'notifications_enabled': 'true',
-          'notify_day_start': 'true',
-          'day_start_time': '08:00',
-          'day_end_time': '21:00',
-        },
-        onSaveSetting: save,
-        now: morning,
-      );
-      // In host test environment (non-Android), method returns false gracefully but saves key
-      expect(savedSettings['last_day_start_notified'], '2026-10-18');
-
-      // Evening test (22:00)
-      final evening = DateTime(2026, 10, 18, 22, 0);
-      await NotificationService.checkAndTriggerDailyFlow(
-        petName: 'Mishi',
-        settings: {
-          'notifications_enabled': 'true',
-          'notify_day_end': 'true',
-          'day_start_time': '08:00',
-          'day_end_time': '21:00',
-        },
-        onSaveSetting: save,
-        now: evening,
-      );
-      expect(savedSettings['last_day_end_notified'], '2026-10-18');
-    });
+          'pet_name': 'Mishi',
+          'day_start_message': 'Hola desde {pet}',
+          'notify_day_end': 'false',
+          'plan_reminder_days': '3',
+        };
+        final habits = [
+          Habit(
+            id: 'walk',
+            title: 'Caminar',
+            reminderTime: '07:30',
+            reminderDays: '135',
+            logs: const [
+              HabitLog(day: '2026-10-18', completed: true),
+              HabitLog(day: '2026-10-17', completed: true),
+            ],
+          ),
+          Habit(id: 'read', title: 'Leer'),
+        ];
+        Goal goal(String id, int progress) => Goal(
+          id: id,
+          title: id,
+          kind: 'tasks',
+          target: 10,
+          progress: progress,
+          startDay: DateTime(2026, 10, 12),
+          endDay: DateTime(2026, 10, 20),
+          reminderTime: '19:00',
+          createdAt: today,
+        );
+        PlannedExpense plan(String id, DateTime due) => PlannedExpense(
+          id: id,
+          title: id,
+          amount: 12,
+          dueDate: due,
+          categoryId: 'c',
+          createdAt: today,
+        );
+        final list = NotificationService.buildReminders(
+          settings: settings,
+          habits: habits,
+          goals: [goal('behind', 3), goal('on-pace', 8)],
+          plans: [
+            plan('luz', DateTime(2026, 10, 25)),
+            plan('agua', DateTime(2026, 10, 19)),
+            plan('vieja', DateTime(2026, 10, 1)),
+          ],
+          now: today,
+        );
+        expect(list.map((r) => r.time), [
+          '08:00',
+          '07:30',
+          '19:00',
+          '19:00',
+          '08:00',
+          '08:00',
+        ]);
+        expect(list.first.body, 'Hola desde Mishi');
+        final walk = list[1];
+        expect(
+          (walk.skipToday, walk.days, walk.habitId),
+          (true, '135', 'walk'),
+        );
+        expect(walk.body, contains('Racha de 2 días'));
+        // 7 of 9 days elapsed: 8 is on pace (no reminder today), 3 is behind.
+        expect(
+          list[2].body,
+          '3 de 10 · te faltan 5 para ir al día · quedan 3 días',
+        );
+        expect((list[2].skipToday, list[3].skipToday), (false, true));
+        expect(list[4].date, '2026-10-22');
+        expect(list[4].body, startsWith('En 3 días vence'));
+        // Due tomorrow with a 3-day lead: ring today instead of in the past.
+        expect(
+          (list[5].date, list[5].body.split(' ·').first),
+          ('2026-10-18', 'Mañana vence'),
+        );
+        expect(
+          NotificationService.buildReminders(
+            settings: {...settings, 'notifications_enabled': 'false'},
+            habits: habits,
+            goals: const [],
+            now: today,
+          ),
+          isEmpty,
+        );
+      },
+    );
   });
 }

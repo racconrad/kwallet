@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/kwall_theme.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
 
 class JuiceButton extends StatefulWidget {
   final IconData icon;
@@ -24,19 +24,19 @@ class _JuiceButtonState extends State<JuiceButton> {
   @override
   Widget build(BuildContext context) {
     final reduced = MediaQuery.disableAnimationsOf(context);
-    final color = widget.filled ? KwallTheme.onAccent : KwallTheme.accent;
+    final color = widget.filled ? KnotesTheme.onAccent : KnotesTheme.accent;
     return AnimatedScale(
       scale: _pressed && !reduced ? .95 : 1,
       duration: Duration(milliseconds: reduced ? 0 : 110),
       curve: Curves.easeOutCubic,
       child: Material(
-        color: widget.filled ? KwallTheme.accent : KwallTheme.surface,
+        color: widget.filled ? KnotesTheme.accent : KnotesTheme.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: KwallTheme.border),
+          borderRadius: BorderRadius.circular(KnotesTheme.radiusMd),
+          side: BorderSide(color: KnotesTheme.border),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(KnotesTheme.radiusMd),
           onHighlightChanged: (value) => setState(() => _pressed = value),
           onTap: widget.onPressed == null
               ? null
@@ -97,11 +97,11 @@ class CircularMeter extends StatelessWidget {
                 value: amount,
                 strokeWidth: 5,
                 strokeCap: StrokeCap.round,
-                color: color ?? KwallTheme.accent,
-                backgroundColor: KwallTheme.surfaceContainer,
+                color: color ?? KnotesTheme.accent,
+                backgroundColor: KnotesTheme.surfaceContainer,
               ),
             ),
-            Icon(icon, color: color ?? KwallTheme.accent, size: size * .38),
+            Icon(icon, color: color ?? KnotesTheme.accent, size: size * .38),
           ],
         ),
       ),

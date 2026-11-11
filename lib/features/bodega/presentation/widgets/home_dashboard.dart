@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../view_models/home_view_model.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../../journal/presentation/habit_actions.dart';
-import '../../../journal/presentation/journal_sheets.dart';
-import '../../models/account.dart';
-import 'home_overview.dart';
-import 'home_hub.dart';
-import 'habit_dot_tracker.dart';
-import 'home_tasks_panel.dart';
-import 'upcoming_dates_panel.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/presentation/widgets/home_overview.dart';
+import 'package:knotes/features/bodega/presentation/widgets/home_hub.dart';
 
 class HomeDashboard extends StatefulWidget {
   final HomeViewModel controller;
@@ -68,53 +62,13 @@ class _HomeDashboardState extends State<HomeDashboard> {
               onSettings: widget.onSettings,
               onPetHoldChanged: _onPetHoldChanged,
             ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                Icons.event_repeat_rounded,
-                color: KwallTheme.accent,
-              ),
-              title: Text(
-                '${KwallTheme.formatCurrency(widget.controller.weeklyCommitments, widget.controller.currency)} previstos esta semana',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: widget.onAgenda,
-            ),
-            const SizedBox(height: 16),
-
-            // 2. Hub de Cuentas, Notas y Hábitos (Selector interactivo)
+            const SizedBox(height: 8),
             HomeHub(
               controller: widget.controller,
-              onAddAccount: widget.onAddAccount,
-              onEditAccount: widget.onEditAccount,
+              onTransaction: widget.onTransaction,
+              onAgenda: widget.onAgenda,
+              onOpenFinances: widget.onOpenFinances,
               onJournal: widget.onJournal,
-            ),
-            const SizedBox(height: 16),
-
-            // 3. Hábitos con gráfico de 7 puntos y marcado directo
-            HabitDotTracker(
-              controller: widget.controller,
-              onAddHabit: () => editHabit(context),
-              onOpenHabits: () => widget.onJournal(1),
-            ),
-            const SizedBox(height: 16),
-
-            // 4. Tareas pendientes de listas
-            HomeTasksPanel(
-              controller: widget.controller,
-              onNewTask: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) => const NoteSheet(initialKind: 'list'),
-              ),
-              onOpenNotes: () => widget.onJournal(0),
-            ),
-            const SizedBox(height: 16),
-
-            // 5. Fechas importantes y compromisos
-            UpcomingDatesPanel(
-              controller: widget.controller,
-              onOpenAgenda: widget.onAgenda,
             ),
           ],
         ),

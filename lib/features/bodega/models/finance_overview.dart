@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'budget_model.dart';
-import 'planned_expense.dart';
+import 'package:knotes/features/bodega/models/budget_model.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
 
 enum BudgetPeriod { daily, weekly, monthly }
 

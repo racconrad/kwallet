@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../view_models/home_view_model.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../../../core/widgets/juice_widgets.dart';
-import '../../models/finance_overview.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/juice_widgets.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
 
 class BudgetPanel extends StatelessWidget {
   final HomeViewModel controller;
@@ -29,7 +29,7 @@ class BudgetPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Presupuesto',
-                  style: KwallTheme.fontTitle.copyWith(fontSize: 20),
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 20),
                 ),
               ),
               IconButton(
@@ -61,8 +61,8 @@ class BudgetPanel extends StatelessWidget {
                 value: limit > 0 ? spent / limit : 0,
                 icon: Icons.donut_small_rounded,
                 color: remaining < 0
-                    ? KwallTheme.expenseRed
-                    : KwallTheme.accent,
+                    ? KnotesTheme.expenseRed
+                    : KnotesTheme.accent,
                 size: 58,
               ),
               const SizedBox(width: 18),
@@ -71,13 +71,13 @@ class BudgetPanel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${remaining >= 0 ? 'Quedan' : 'Exceso'} ${KwallTheme.formatCurrency(remaining.abs(), controller.currency)}',
-                      style: KwallTheme.fontTitle.copyWith(fontSize: 18),
+                      '${remaining >= 0 ? 'Quedan' : 'Exceso'} ${KnotesTheme.formatCurrency(remaining.abs(), controller.currency)}',
+                      style: KnotesTheme.fontTitle.copyWith(fontSize: 18),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${KwallTheme.formatCurrency(spent, controller.currency)} de ${KwallTheme.formatCurrency(limit, controller.currency)}',
-                      style: TextStyle(color: KwallTheme.textSecondary),
+                      '${KnotesTheme.formatCurrency(spent, controller.currency)} de ${KnotesTheme.formatCurrency(limit, controller.currency)}',
+                      style: TextStyle(color: KnotesTheme.textSecondary),
                     ),
                   ],
                 ),

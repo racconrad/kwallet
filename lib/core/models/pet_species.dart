@@ -8,7 +8,8 @@ enum PetSpecies {
   raccoon('Mapache'),
   opossum('Zarigüeya'),
   rock('Roca'),
-  plant('Planta');
+  plant('Planta'),
+  golem('Gólem');
 
   final String label;
   const PetSpecies(this.label);
@@ -413,6 +414,13 @@ class PetSpeciesCatalog {
       asset: 'assets/pets/plant.png',
     ),
 
+    'golem_classic': PetStyleDef(
+      key: 'golem_classic',
+      name: 'Terrón',
+      species: PetSpecies.golem,
+      asset: 'assets/pets/golem.png',
+    ),
+
     // Raccoons
     'raccoon_classic': PetStyleDef(
       key: 'raccoon_classic',
@@ -496,17 +504,9 @@ class PetSpeciesCatalog {
   }
 
   static String resolveAsset(String? styleKey, {int xp = 0}) {
-    final def = get(styleKey);
-    if (xp < 200) {
-      return switch (def.species) {
-        PetSpecies.cat => 'assets/pets/cat_baby.png',
-        PetSpecies.rat => 'assets/pets/rat_baby.png',
-        PetSpecies.raccoon => 'assets/pets/raccoon_baby.png',
-        PetSpecies.opossum => 'assets/pets/opossum_baby.png',
-        PetSpecies.rock => 'assets/pets/rock_baby.png',
-        PetSpecies.plant => 'assets/pets/plant_baby.png',
-      };
-    }
-    return def.asset;
+    final asset = get(styleKey).asset;
+    return PetGrowthStage.fromXp(xp) == PetGrowthStage.baby
+        ? asset.replaceFirst('.png', '_baby.png')
+        : asset;
   }
 }

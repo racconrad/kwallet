@@ -47,9 +47,14 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
+# Generated skill registry cache
+.atl/
+
 # Local UI review captures (synthetic data)
 .impeccable/review/
 
 # Internal AI plans, prompts, references, and review documents
 /docs-ia/
-/tool/
+/tool/*
+!/tool/pet_pixels/
+/tool/pet_pixels/__pycache__/

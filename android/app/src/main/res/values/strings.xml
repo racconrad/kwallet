@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">kwall</string>
+    <string name="app_name">knotes</string>
     <string name="widget_pet_habits_name">Mishi &amp; Hábitos</string>
     <string name="widget_pet_habits_desc">Acompaña a tu mascota virtual y revisa tus hábitos pendientes de hoy.</string>
 </resources>

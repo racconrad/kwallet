@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/kwall_theme.dart';
-import 'pet_selection_panel.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/pet_selection_panel.dart';
 
 class PetPicker extends StatelessWidget {
   final Map<String, String> settings;
@@ -31,7 +31,7 @@ class PetPicker extends StatelessWidget {
           child: LinearProgressIndicator(),
         ),
       if (error != null)
-        Text(error!, style: TextStyle(color: KwallTheme.expenseRed)),
+        Text(error!, style: TextStyle(color: KnotesTheme.expenseRed)),
     ],
   );
 }

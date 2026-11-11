@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/journal_actions_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../../../core/widgets/kitty_companion.dart';
-import '../models/journal_models.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/journal/view_models/journal_actions_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
 
 class HabitDaySummary extends StatefulWidget {
   final List<Habit> habits;
@@ -94,7 +94,7 @@ class _HabitDaySummaryState
                 allDone
                     ? '¡Día completo!'
                     : '$completed de ${widget.habits.length}',
-                style: KwallTheme.fontTitle.copyWith(fontSize: 18),
+                style: KnotesTheme.fontTitle.copyWith(fontSize: 18),
               ),
               if (pending > 0)
                 TextButton.icon(

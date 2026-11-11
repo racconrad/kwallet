@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kwall/core/services/widget_sync_service.dart';
-import 'package:kwall/core/theme/kwall_theme.dart';
-import 'package:kwall/features/bodega/models/account.dart';
-import 'package:kwall/features/bodega/models/planned_expense.dart';
-import 'package:kwall/features/bodega/models/category_model.dart';
+import 'package:knotes/core/services/widget_sync_service.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
 
 void main() {
   test('Account model serialization and currency format test', () {
@@ -18,7 +18,7 @@ void main() {
 
     expect(acc.name, 'Bolsillo');
     expect(acc.balance, 150.75);
-    expect(KwallTheme.formatCurrency(acc.balance), '\$150.75');
+    expect(KnotesTheme.formatCurrency(acc.balance), '\$150.75');
 
     final map = acc.toMap();
     final restored = Account.fromMap(map);
@@ -64,21 +64,23 @@ void main() {
     expect(restored.name, 'Gimnasio');
   });
 
-  test('WidgetSyncService handles platform checks and calls gracefully', () async {
-    final synced = await WidgetSyncService.syncWidget(
-      petName: 'Mishi',
-      xp: 150,
-      completedHabits: 2,
-      totalHabits: 3,
-      pendingHabits: 1,
-      petStyle: 'ginger',
-      themePalette: 'plum',
-    );
-    // In unit test environment (running on host OS, not Android emulator), returns false gracefully
-    expect(synced, isFalse);
+  test(
+    'WidgetSyncService handles platform checks and calls gracefully',
+    () async {
+      final synced = await WidgetSyncService.syncWidget(
+        petName: 'Mishi',
+        xp: 150,
+        completedHabits: 2,
+        totalHabits: 3,
+        pendingHabits: 1,
+        petStyle: 'ginger',
+        themePalette: 'plum',
+      );
+      // In unit test environment (running on host OS, not Android emulator), returns false gracefully
+      expect(synced, isFalse);
 
-    final route = await WidgetSyncService.getLaunchRoute();
-    expect(route, isNull);
-  });
+      final route = await WidgetSyncService.getLaunchRoute();
+      expect(route, isNull);
+    },
+  );
 }
-

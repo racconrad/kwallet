@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/kwall_theme.dart';
-import 'kitty_companion.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/kitty_companion.dart';
 
 class PetCameoEmptyState extends StatelessWidget {
   final String label;
@@ -28,10 +28,7 @@ class PetCameoEmptyState extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 IgnorePointer(
-                  child: KittyCompanionWidget(
-                    size: 72,
-                    activity: activity,
-                  ),
+                  child: KittyCompanionWidget(size: 72, activity: activity),
                 ),
                 if (iconBadge != null)
                   Positioned(
@@ -40,17 +37,17 @@ class PetCameoEmptyState extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: KwallTheme.accentLight,
+                        color: KnotesTheme.accentLight,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: KwallTheme.accent.withValues(alpha: 0.4),
+                          color: KnotesTheme.accent.withValues(alpha: 0.4),
                           width: 1.5,
                         ),
                       ),
                       child: Icon(
                         iconBadge,
                         size: 14,
-                        color: KwallTheme.accent,
+                        color: KnotesTheme.accent,
                       ),
                     ),
                   ),
@@ -63,7 +60,7 @@ class PetCameoEmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: KwallTheme.textSecondary,
+                color: KnotesTheme.textSecondary,
               ),
             ),
           ],

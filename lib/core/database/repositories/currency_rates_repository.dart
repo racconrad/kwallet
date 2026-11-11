@@ -1,4 +1,5 @@
-import '../../models/currency_conversion.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -25,60 +26,64 @@ class CurrencyRatesRepository {
     String notes = '',
   }) async {
     final trimmed = CurrencyConversion.code(currency);
-    if (trimmed.isEmpty || !rate.isFinite || rate <= 0) throw ArgumentError('Tasa inválida');
-    await db.transaction((txn) async {
-
-    final existing = await txn.query(
-      'global_currency_rates',
-      where: 'currency = ?',
-      whereArgs: [trimmed],
-    );
-
-    double? prevRate;
-    if (existing.isNotEmpty) {
-      prevRate = (existing.first['rate'] as num?)?.toDouble();
+    if (trimmed.isEmpty || !rate.isFinite || rate <= 0) {
+      throw ArgumentError('Tasa inválida');
     }
+    await db.transaction((txn) async {
+      final existing = await txn.query(
+        'global_currency_rates',
+        where: 'currency = ?',
+        whereArgs: [trimmed],
+      );
 
-    final baseRows = await txn.query('app_settings', where: 'key = ?', whereArgs: ['currency']);
-    final baseCurrency = baseRows.firstOrNull?['value'] as String? ?? '\$';
-    final now = DateTime.now().toIso8601String();
+      double? prevRate;
+      if (existing.isNotEmpty) {
+        prevRate = (existing.first['rate'] as num?)?.toDouble();
+      }
 
-    await txn.insert(
-      'global_currency_rates',
-      {
+      final baseRows = await txn.query(
+        'app_settings',
+        where: 'key = ?',
+        whereArgs: ['currency'],
+      );
+      final baseCurrency = baseRows.firstOrNull?['value'] as String? ?? '\$';
+      final now = DateTime.now().toIso8601String();
+
+      await txn.insert('global_currency_rates', {
         'currency': trimmed,
         'rate': rate,
         'updated_at': now,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
 
-    await txn.insert(
-      'user_currencies',
-      {
-        'code': trimmed,
-        'name': '',
+      final defined = await txn.query('user_currencies');
+      if (!defined.any(
+        (row) => CurrencyConversion.code(row['code'] as String) == trimmed,
+      )) {
+        await txn.insert('user_currencies', {
+          'code': currency.trim(),
+          'name': '',
+          'created_at': now,
+        });
+      }
+
+      await txn.insert('global_currency_history', {
+        'id': _uuid.v4(),
+        'currency': trimmed,
+        'previous_rate': prevRate,
+        'new_rate': rate,
+        'base_currency': baseCurrency,
+        'notes': notes,
         'created_at': now,
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
-
-    await txn.insert('global_currency_history', {
-      'id': _uuid.v4(),
-      'currency': trimmed,
-      'previous_rate': prevRate,
-      'new_rate': rate,
-      'base_currency': baseCurrency,
-      'notes': notes,
-      'created_at': now,
-    });
+      });
     });
   }
 
   Future<void> removeRate(String currency) async {
     final trimmed = CurrencyConversion.code(currency);
     final accounts = await db.query('accounts');
-    if (accounts.any((a) => CurrencyConversion.code(a['currency'] as String) == trimmed)) {
+    if (accounts.any(
+      (a) => CurrencyConversion.code(a['currency'] as String) == trimmed,
+    )) {
       throw StateError('La moneda está en uso por una cuenta');
     }
     await db.delete(
@@ -112,6 +117,12 @@ class CurrencyRatesRepository {
     required Map<String, double> rates,
     required String dominantCurrency,
   }) {
-    return CurrencyConversion.convert(amount, from: from, to: to, rates: rates, dominantCurrency: dominantCurrency);
+    return CurrencyConversion.convert(
+      amount,
+      from: from,
+      to: to,
+      rates: rates,
+      dominantCurrency: dominantCurrency,
+    );
   }
 }

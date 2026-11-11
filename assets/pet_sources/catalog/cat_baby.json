@@ -1,0 +1,149 @@
+{
+  "kind": "quadruped",
+  "parts": {
+    "head": [
+      "K.......K",
+      "KK.....KK",
+      "KPKKKKKPK",
+      "KWLDLDLSK",
+      "KWKLLLWKK",
+      "KKKLPLKKK",
+      "KPLLKLLPK",
+      ".KSSSSSK.",
+      "..KKKKK.."
+    ],
+    "sit": [
+      ".KWWLK.",
+      "KLWWLSK",
+      "KWKSKWK",
+      "KKKKKKK"
+    ],
+    "tail": [
+      "KK.",
+      "KSK",
+      "KDK",
+      "KLK",
+      "KKK"
+    ],
+    "walk": [
+      ".KKKKKK.",
+      "KWLDLDLK",
+      "KSSSSSSK"
+    ],
+    "walk_tail": [
+      "KK..",
+      "KSK.",
+      "KDK.",
+      "KLKK",
+      ".KLL"
+    ],
+    "sleep": [
+      ".KKKKKKK.",
+      "KWLLDLDLK",
+      "KLLLLLLSK",
+      ".KKKKKKK."
+    ],
+    "sleep_tail": [
+      "KKKKK",
+      "KDLDK",
+      "KKKKK"
+    ],
+    "paw": [
+      "KK",
+      "KK"
+    ],
+    "feet_0": [
+      "KSSSSSSK",
+      ".KLKKLK.",
+      ".KKKKKK."
+    ],
+    "feet_1": [
+      "KSSSSSSK",
+      "KLK..KLK",
+      "KKK..KKK"
+    ],
+    "feet_2": [
+      "KSSSSSSK",
+      "..KLKLK.",
+      "..KKKKK."
+    ],
+    "feet_3": [
+      "KSSSSSSK",
+      ".KLKLK..",
+      ".KKKKK.."
+    ]
+  },
+  "anchors": {
+    "head": [
+      12,
+      19
+    ],
+    "sit": [
+      13,
+      25
+    ],
+    "tail": [
+      20,
+      22
+    ],
+    "walk_head": [
+      16,
+      19
+    ],
+    "walk": [
+      11,
+      24
+    ],
+    "walk_tail": [
+      8,
+      21
+    ],
+    "feet": [
+      11,
+      26
+    ],
+    "sleep": [
+      11,
+      25
+    ],
+    "sleep_head": [
+      16,
+      21
+    ]
+  },
+  "eyes": [
+    [
+      1,
+      4
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      1,
+      5
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      6,
+      4
+    ],
+    [
+      7,
+      4
+    ],
+    [
+      6,
+      5
+    ],
+    [
+      7,
+      5
+    ]
+  ],
+  "eye_fill": "L"
+}

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/kwall_theme.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
 
 class ExpressiveButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -21,10 +21,10 @@ class ExpressiveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: isOutlined ? Colors.transparent : color ?? KwallTheme.accent,
+    color: isOutlined ? Colors.transparent : color ?? KnotesTheme.accent,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(4),
-      side: BorderSide(color: KwallTheme.border, width: 1.5),
+      side: BorderSide(color: KnotesTheme.border, width: 1.5),
     ),
     child: InkWell(
       onTap: onPressed,

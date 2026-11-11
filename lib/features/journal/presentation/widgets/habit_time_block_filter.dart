@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../models/journal_models.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
 
 class HabitTimeBlockFilter extends StatelessWidget {
   final String activeBlock;
@@ -49,8 +49,8 @@ class HabitTimeBlockFilter extends StatelessWidget {
                 icon,
                 size: 15,
                 color: activeBlock == key
-                    ? KwallTheme.onAccent
-                    : KwallTheme.accent,
+                    ? KnotesTheme.onAccent
+                    : KnotesTheme.accent,
               ),
               label: Text(
                 label,
@@ -58,19 +58,20 @@ class HabitTimeBlockFilter extends StatelessWidget {
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   color: activeBlock == key
-                      ? KwallTheme.onAccent
-                      : KwallTheme.textPrimary,
+                      ? KnotesTheme.onAccent
+                      : KnotesTheme.textPrimary,
                 ),
               ),
-              selectedColor: KwallTheme.accent,
-              backgroundColor:
-                  KwallTheme.surfaceContainer.withValues(alpha: 0.6),
+              selectedColor: KnotesTheme.accent,
+              backgroundColor: KnotesTheme.surfaceContainer.withValues(
+                alpha: 0.6,
+              ),
               showCheckmark: false,
               padding: const EdgeInsets.symmetric(horizontal: 4),
               side: BorderSide(
                 color: activeBlock == key
-                    ? KwallTheme.accent
-                    : KwallTheme.border.withValues(alpha: 0.35),
+                    ? KnotesTheme.accent
+                    : KnotesTheme.border.withValues(alpha: 0.35),
               ),
             ),
             const SizedBox(width: 6),

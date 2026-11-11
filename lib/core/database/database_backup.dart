@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseBackup {
-  static const version = 6;
+  static const version = 10;
   static const tables = [
     'accounts',
     'categories',
@@ -20,6 +20,7 @@ class DatabaseBackup {
     'personal_notes',
     'habits',
     'habit_logs',
+    'goals',
     'reward_events',
     'account_currency_history',
     'global_currency_rates',
@@ -37,6 +38,7 @@ class DatabaseBackup {
     'global_currency_rates',
     'planned_expense_payments',
     'budget_allocation_history',
+    'goals',
     'habit_logs',
     'reward_events',
     'transactions',
@@ -71,11 +73,13 @@ class DatabaseBackup {
     for (final table in tables.where(existing.contains)) {
       final rows = await db.query(table);
       data[table] = table == 'app_settings'
-          ? rows.where((row) => !(row['key'] as String).startsWith('github_')).toList()
+          ? rows
+                .where((row) => !(row['key'] as String).startsWith('github_'))
+                .toList()
           : rows;
     }
     return const JsonEncoder.withIndent('  ').convert({
-      'app': 'kwall',
+      'app': 'knotes',
       'version': schemaVersion,
       'exported_at': DateTime.now().toUtc().toIso8601String(),
       'checksum': _digest(data),
@@ -86,15 +90,15 @@ class DatabaseBackup {
   static Map<String, List<Map<String, Object?>>> decode(String source) {
     final raw = jsonDecode(source);
     if (raw is! Map ||
-        raw['app'] != 'kwall' ||
+        !const ['knotes', 'kwall'].contains(raw['app']) ||
         raw['version'] is! int ||
         raw['data'] is! Map) {
-      throw const FormatException('El archivo no es un respaldo de kwall.');
+      throw const FormatException('El archivo no es un respaldo de knotes.');
     }
     final schemaVersion = raw['version'] as int;
     if (schemaVersion < 1 || schemaVersion > version) {
       throw const FormatException(
-        'Este respaldo requiere otra versión de kwall. Actualiza la app antes de restaurarlo.',
+        'Este respaldo requiere otra versión de knotes. Actualiza la app antes de restaurarlo.',
       );
     }
     final data = raw['data'] as Map;
@@ -104,16 +108,19 @@ class DatabaseBackup {
         'El respaldo está incompleto o fue modificado. No se restauró ningún dato.',
       );
     }
-    for (final required in [
-      'accounts',
-      'categories',
-      'transactions',
-    ]) {
+    for (final required in ['accounts', 'categories', 'transactions']) {
       if (data[required] is! List) {
         throw FormatException('Falta la tabla $required.');
       }
     }
-    if (schemaVersion >= 6 && tables.where((t) => t != 'user_currencies').any((table) => data[table] is! List)) {
+    if (schemaVersion >= 6 &&
+        tables
+            .where(
+              (t) =>
+                  t != 'user_currencies' &&
+                  (schemaVersion >= 9 || t != 'goals'),
+            )
+            .any((table) => data[table] is! List)) {
       throw const FormatException('El respaldo está incompleto.');
     }
     final result = <String, List<Map<String, Object?>>>{};
@@ -128,9 +135,11 @@ class DatabaseBackup {
       final ids = <Object?>{};
       for (final row in result[table]!) {
         final key =
-            row[table == 'global_currency_rates' ? 'currency' :
-                table == 'user_currencies' ? 'code' :
-                table == 'app_settings'
+            row[table == 'global_currency_rates'
+                ? 'currency'
+                : table == 'user_currencies'
+                ? 'code'
+                : table == 'app_settings'
                 ? 'key'
                 : table == 'budget_allocations'
                 ? 'period_key'
@@ -153,20 +162,39 @@ class DatabaseBackup {
       for (final a in result['accounts']!) {
         final c = (a['currency'] as String?)?.trim();
         if (c != null && c.isNotEmpty && seen.add(c)) {
-          result['user_currencies']!.add({'code': c, 'name': '', 'created_at': now});
+          result['user_currencies']!.add({
+            'code': c,
+            'name': '',
+            'created_at': now,
+          });
         }
       }
-      final mainCur = (result['app_settings']!.firstWhere(
-        (r) => r['key'] == 'currency',
-        orElse: () => {'value': '\$'},
-      )['value'] as String?)?.trim() ?? '\$';
+      final mainCur =
+          (result['app_settings']!.firstWhere(
+                    (r) => r['key'] == 'currency',
+                    orElse: () => {'value': '\$'},
+                  )['value']
+                  as String?)
+              ?.trim() ??
+          '\$';
       if (seen.add(mainCur)) {
-        result['user_currencies']!.add({'code': mainCur, 'name': '', 'created_at': now});
+        result['user_currencies']!.add({
+          'code': mainCur,
+          'name': '',
+          'created_at': now,
+        });
       }
     }
-    result['app_settings']!.removeWhere((row) => (row['key'] as String).startsWith('github_'));
-    final accountCurrencies = {for (final row in result['accounts']!) row['id']: row['currency'] ?? '\$'};
-    for (final row in [...result['transactions']!, ...result['transaction_archive']!]) {
+    result['app_settings']!.removeWhere(
+      (row) => (row['key'] as String).startsWith('github_'),
+    );
+    final accountCurrencies = {
+      for (final row in result['accounts']!) row['id']: row['currency'] ?? '\$',
+    };
+    for (final row in [
+      ...result['transactions']!,
+      ...result['transaction_archive']!,
+    ]) {
       row['currency'] ??= accountCurrencies[row['account_id']];
       if (row['type'] == 'transfer') {
         // Preserve the actual credited amount of pre-v5 transfers, never reprice history.
@@ -175,14 +203,23 @@ class DatabaseBackup {
           row['exchange_rate'] ??= 1.0;
           row['to_currency'] ??= accountCurrencies[row['to_account_id']];
         }
-        if (row['to_amount'] is! num || (row['to_amount'] as num) <= 0 ||
-            row['exchange_rate'] is! num || (row['exchange_rate'] as num) <= 0 ||
-            row['to_currency'] is! String) { throw const FormatException('Transferencia inválida.'); }
+        if (row['to_amount'] is! num ||
+            (row['to_amount'] as num) <= 0 ||
+            row['exchange_rate'] is! num ||
+            (row['exchange_rate'] as num) <= 0 ||
+            row['to_currency'] is! String) {
+          throw const FormatException('Transferencia inválida.');
+        }
       }
     }
-    for (final row in [...result['global_currency_rates']!, ...result['global_currency_history']!]) {
+    for (final row in [
+      ...result['global_currency_rates']!,
+      ...result['global_currency_history']!,
+    ]) {
       final rate = row['rate'] ?? row['new_rate'];
-      if (rate is! num || rate <= 0) throw const FormatException('Tasa inválida.');
+      if (rate is! num || rate <= 0) {
+        throw const FormatException('Tasa inválida.');
+      }
     }
     final activeIds = result['transactions']!.map((row) => row['id']).toSet();
     if (result['transaction_archive']!.any(
@@ -195,7 +232,13 @@ class DatabaseBackup {
     final accounts = result['accounts']!.map((r) => r['id']).toSet();
     final habits = result['habits']!.map((r) => r['id']).toSet();
     for (final row in result['accounts']!) {
-      if (row['balance'] is! num || (row['minimum_balance'] as num? ?? 0) < 0) {
+      if (schemaVersion < 8) row['exclude_from_available'] ??= 0;
+      if (![0, 1].contains(row['exclude_from_available'])) {
+        throw const FormatException('Opción de saldo libre inválida.');
+      }
+      if (row['balance'] is! num ||
+          (row['minimum_balance'] as num? ?? 0) < 0 ||
+          (row['savings_target'] as num? ?? 0) < 0) {
         throw const FormatException('Saldo de cuenta inválido.');
       }
     }
@@ -206,7 +249,13 @@ class DatabaseBackup {
       if (!accounts.contains(row['account_id']) ||
           row['amount'] is! num ||
           (row['amount'] as num) <= 0 ||
-          !['expense', 'income', 'transfer'].contains(row['type']) ||
+          ![
+            'expense',
+            'income',
+            'transfer',
+            'adjustment_in',
+            'adjustment_out',
+          ].contains(row['type']) ||
           (row['type'] == 'transfer' &&
               (!accounts.contains(row['to_account_id']) ||
                   row['account_id'] == row['to_account_id']))) {
@@ -237,6 +286,15 @@ class DatabaseBackup {
         throw const FormatException('Registro de hábito inválido.');
       }
     }
+    for (final row in result['goals']!) {
+      if (!['habits', 'tasks', 'manual'].contains(row['kind']) ||
+          row['target'] is! int ||
+          (row['target'] as int) <= 0 ||
+          (row['progress'] as int? ?? 0) < 0 ||
+          (row['habit_id'] != null && !habits.contains(row['habit_id']))) {
+        throw const FormatException('Meta inválida.');
+      }
+    }
     for (final row in result['personal_notes']!) {
       final items = jsonDecode(row['items'] as String);
       if (!['note', 'list'].contains(row['kind']) ||
@@ -245,9 +303,19 @@ class DatabaseBackup {
             (item) =>
                 item is! Map ||
                 item['text'] is! String ||
+                (item.containsKey('id') &&
+                    (item['id'] is! String ||
+                        (item['id'] as String).isEmpty)) ||
                 item['done'] is! bool,
           )) {
         throw const FormatException('Lista personal inválida.');
+      }
+      final itemIds = items
+          .where((item) => item['id'] != null)
+          .map((item) => item['id'])
+          .toList();
+      if (itemIds.toSet().length != itemIds.length) {
+        throw const FormatException('Elementos de lista duplicados.');
       }
     }
     for (final table in result.entries) {
@@ -260,6 +328,8 @@ class DatabaseBackup {
           'day',
           'period_start',
           'voided_at',
+          'start_day',
+          'end_day',
         ]) {
           if (row[field] != null &&
               (row[field] is! String ||
@@ -272,18 +342,25 @@ class DatabaseBackup {
     if (data.containsKey('budgets') && data['budgets'] is List) {
       final oldBudgets = data['budgets'] as List;
       for (final b in oldBudgets) {
-        if (b is Map && b['month'] is int && b['year'] is int && b['monthly_limit'] is num) {
+        if (b is Map &&
+            b['month'] is int &&
+            b['year'] is int &&
+            b['monthly_limit'] is num) {
           final m = (b['month'] as int).toString().padLeft(2, '0');
           final y = b['year'];
           final start = '$y-$m-01';
           final key = 'monthly:$start';
-          if (!result['budget_allocations']!.any((r) => r['period_key'] == key)) {
+          if (!result['budget_allocations']!.any(
+            (r) => r['period_key'] == key,
+          )) {
             result['budget_allocations']!.add({
               'period_key': key,
               'period': 'monthly',
               'period_start': start,
               'amount': (b['monthly_limit'] as num).toDouble(),
-              'updated_at': b['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+              'updated_at':
+                  b['created_at']?.toString() ??
+                  DateTime.now().toIso8601String(),
             });
           }
         }
@@ -321,8 +398,13 @@ class DatabaseBackup {
       final amount = (tx['amount'] as num).toDouble();
       deltas.update(
         tx['account_id'],
-        (value) => value + (tx['type'] == 'income' ? amount : -amount),
-        ifAbsent: () => tx['type'] == 'income' ? amount : -amount,
+        (value) =>
+            value +
+            (['income', 'adjustment_in'].contains(tx['type'])
+                ? amount
+                : -amount),
+        ifAbsent: () =>
+            ['income', 'adjustment_in'].contains(tx['type']) ? amount : -amount,
       );
       if (tx['type'] == 'transfer') {
         deltas.update(

@@ -1,14 +1,14 @@
-import '../../../core/theme/category_visuals.dart';
+import 'package:knotes/core/theme/category_visuals.dart';
 
 import 'package:flutter/material.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/categories_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/game_hud_widgets.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../models/category_model.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/bodega/view_models/categories_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/game_hud_widgets.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
 
 class CategoriesSheet extends StatefulWidget {
   final String type; // 'expense' or 'income'
@@ -102,7 +102,7 @@ class _CategoriesSheetState
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: KwallTheme.border,
+                  color: KnotesTheme.border,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -114,13 +114,13 @@ class _CategoriesSheetState
               children: [
                 Text(
                   'Gestionar Categorías',
-                  style: KwallTheme.fontTitle.copyWith(fontSize: 18),
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 18),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: Icon(
                     Icons.close_rounded,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                   ),
                 ),
               ],
@@ -134,13 +134,13 @@ class _CategoriesSheetState
                   child: FilterChip(
                     label: Center(child: Text('Gastos')),
                     selected: _currentType == 'expense',
-                    selectedColor: KwallTheme.accent.withValues(alpha: 0.2),
-                    backgroundColor: KwallTheme.surfaceContainer,
-                    checkmarkColor: KwallTheme.accent,
+                    selectedColor: KnotesTheme.accent.withValues(alpha: 0.2),
+                    backgroundColor: KnotesTheme.surfaceContainer,
+                    checkmarkColor: KnotesTheme.accent,
                     labelStyle: TextStyle(
                       color: _currentType == 'expense'
-                          ? KwallTheme.accent
-                          : KwallTheme.textSecondary,
+                          ? KnotesTheme.accent
+                          : KnotesTheme.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                     onSelected: (_) {
@@ -153,13 +153,13 @@ class _CategoriesSheetState
                   child: FilterChip(
                     label: Center(child: Text('Ingresos')),
                     selected: _currentType == 'income',
-                    selectedColor: KwallTheme.accent.withValues(alpha: 0.2),
-                    backgroundColor: KwallTheme.surfaceContainer,
-                    checkmarkColor: KwallTheme.accent,
+                    selectedColor: KnotesTheme.accent.withValues(alpha: 0.2),
+                    backgroundColor: KnotesTheme.surfaceContainer,
+                    checkmarkColor: KnotesTheme.accent,
                     labelStyle: TextStyle(
                       color: _currentType == 'income'
-                          ? KwallTheme.accent
-                          : KwallTheme.textSecondary,
+                          ? KnotesTheme.accent
+                          : KnotesTheme.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
                     onSelected: (_) {
@@ -174,10 +174,10 @@ class _CategoriesSheetState
             // New category form
             Text(
               'CREAR NUEVA CATEGORÍA',
-              style: KwallTheme.fontBody.copyWith(
+              style: KnotesTheme.fontBody.copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: KwallTheme.textSecondary,
+                color: KnotesTheme.textSecondary,
                 letterSpacing: 0.5,
               ),
             ),
@@ -188,11 +188,11 @@ class _CategoriesSheetState
                 Expanded(
                   child: TextField(
                     controller: _nameController,
-                    style: TextStyle(color: KwallTheme.textPrimary),
+                    style: TextStyle(color: KnotesTheme.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Ej. Gimnasio, Libros, Streaming...',
                       hintStyle: TextStyle(
-                        color: KwallTheme.textMuted,
+                        color: KnotesTheme.textMuted,
                         fontSize: 13,
                       ),
                     ),
@@ -202,7 +202,7 @@ class _CategoriesSheetState
                 ExpressiveButton(
                   onPressed: _addCategory,
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Icon(Icons.add_rounded, color: KwallTheme.onAccent),
+                  child: Icon(Icons.add_rounded, color: KnotesTheme.onAccent),
                 ),
               ],
             ),
@@ -211,10 +211,10 @@ class _CategoriesSheetState
             // Icon Picker
             Text(
               'Icono',
-              style: KwallTheme.fontBody.copyWith(
+              style: KnotesTheme.fontBody.copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: KwallTheme.textSecondary,
+                color: KnotesTheme.textSecondary,
               ),
             ),
             SizedBox(height: 6),
@@ -236,12 +236,12 @@ class _CategoriesSheetState
                       height: 44,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? KwallTheme.accent.withValues(alpha: 0.2)
-                            : KwallTheme.surfaceContainer,
+                            ? KnotesTheme.accent.withValues(alpha: 0.2)
+                            : KnotesTheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
                           color: isSelected
-                              ? KwallTheme.accent
+                              ? KnotesTheme.accent
                               : Colors.transparent,
                           width: 1.5,
                         ),
@@ -250,8 +250,8 @@ class _CategoriesSheetState
                         item['icon'] as IconData,
                         size: 20,
                         color: isSelected
-                            ? KwallTheme.accent
-                            : KwallTheme.textSecondary,
+                            ? KnotesTheme.accent
+                            : KnotesTheme.textSecondary,
                       ),
                     ),
                   );
@@ -263,10 +263,10 @@ class _CategoriesSheetState
             // Color Picker
             Text(
               'Color',
-              style: KwallTheme.fontBody.copyWith(
+              style: KnotesTheme.fontBody.copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: KwallTheme.textSecondary,
+                color: KnotesTheme.textSecondary,
               ),
             ),
             SizedBox(height: 6),
@@ -288,7 +288,10 @@ class _CategoriesSheetState
                         color: Color(c),
                         shape: BoxShape.circle,
                         border: isSelected
-                            ? Border.all(color: KwallTheme.onAccent, width: 2.5)
+                            ? Border.all(
+                                color: KnotesTheme.onAccent,
+                                width: 2.5,
+                              )
                             : null,
                       ),
                     ),
@@ -301,10 +304,10 @@ class _CategoriesSheetState
             // Existing categories list
             Text(
               'CATEGORÍAS EXISTENTES (${_categories.length})',
-              style: KwallTheme.fontBody.copyWith(
+              style: KnotesTheme.fontBody.copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: KwallTheme.textSecondary,
+                color: KnotesTheme.textSecondary,
                 letterSpacing: 0.5,
               ),
             ),
@@ -321,23 +324,23 @@ class _CategoriesSheetState
                     avatar: Icon(
                       cat.iconData,
                       size: 16,
-                      color: KwallTheme.displayColor(cat.colorValue),
+                      color: KnotesTheme.displayColor(cat.colorValue),
                     ),
                     label: Text(
                       cat.name,
                       style: TextStyle(
                         fontSize: 12,
-                        color: KwallTheme.textPrimary,
+                        color: KnotesTheme.textPrimary,
                       ),
                     ),
-                    backgroundColor: KwallTheme.surfaceContainer,
-                    side: BorderSide(color: KwallTheme.border),
+                    backgroundColor: KnotesTheme.surfaceContainer,
+                    side: BorderSide(color: KnotesTheme.border),
                     deleteIcon: cat.isDefault
                         ? null
                         : Icon(
                             Icons.close_rounded,
                             size: 14,
-                            color: KwallTheme.textMuted,
+                            color: KnotesTheme.textMuted,
                           ),
                     onDeleted: cat.isDefault
                         ? null

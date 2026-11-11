@@ -1,4 +1,4 @@
-import 'category_model.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
 
 class DailySpend {
   final DateTime date;

@@ -1,0 +1,567 @@
+{
+  "descripcion": "Formato general de las hojas de sprites (una hoja por mascota y etapa). Ya no existe un atlas unificado: cada hoja es su propio atlas de 8x10 celdas.",
+  "fecha": "2026-11-08",
+  "hoja": {
+    "ancho_px": 512,
+    "alto_px": 640,
+    "celda_px": [
+      64,
+      64
+    ],
+    "columnas": 8,
+    "filas": 10,
+    "frames_por_fila": 8,
+    "frames_por_hoja": 80,
+    "formato_archivo": "PNG RGBA, fondo transparente",
+    "transparencia": "solo 0 o 255 (sin semitransparencias ni antialias)",
+    "celdas_vacias": 0,
+    "celdas_que_tocan_el_borde": 0,
+    "nota": "Las 14 hojas usan celdas de 64 × 64; estilo chibi con volumen simple de tres tonos, ampliado sin interpolación."
+  },
+  "convenciones_de_dibujo": {
+    "origen_de_coordenadas": "esquina superior izquierda de la hoja; x crece a la derecha, y hacia abajo",
+    "contorno": "Un píxel lógico, equivalente a dos píxeles físicos en las celdas de 64 × 64; color #2f2f2e.",
+    "linea_de_base": {
+      "fila_de_pixeles_del_contorno_inferior": 57,
+      "linea_de_suelo_y": 58,
+      "explicacion": "Las poses apoyadas terminan en y=57. Solo correr y celebrar se desplazan verticalmente; y=58..63 queda libre."
+    },
+    "centrado_horizontal": "Anclaje estable por especie y pose; centro de celda x=32.",
+    "punto_de_anclaje_recomendado": {
+      "x": 32,
+      "y": 58,
+      "descripcion": "Abajo al centro, respetando las proporciones chibi de cada mascota."
+    },
+    "orientacion": "gato, zarigueya, mapache y rata miran a la derecha (voltear en horizontal para mirar a la izquierda); golem, planta y roca son de frente (simetricos)",
+    "margen": "Ningún píxel toca el borde de una celda; los bloques de la fuente lógica se exportan a escala entera 2×.",
+    "escalado": "solo multiplos enteros (2x, 3x, 4x) con filtro vecino mas cercano (nearest / point), sin compresion ni mipmaps"
+  },
+  "filas_de_animacion": {
+    "nota": "Las diez filas son ciclos cerrados de ocho frames, construidos con las mismas piezas ASCII por especie y etapa. Los tiempos de las actividades utilizadas coinciden con el motor de la aplicación.",
+    "filas": [
+      {
+        "fila": 0,
+        "accion": "reposo",
+        "detalle": "respira, mueve la cola o el brote, parpadea"
+      },
+      {
+        "fila": 1,
+        "accion": "reposo mirando alrededor",
+        "detalle": "gira la cabeza o los ojos"
+      },
+      {
+        "fila": 2,
+        "accion": "reposo contento",
+        "detalle": "Expresión contenta y movimiento suave; el golem levanta los brazos."
+      },
+      {
+        "fila": 3,
+        "accion": "estirarse",
+        "detalle": "Los animales inclinan la cabeza sin cambiar sus proporciones; las demás mascotas estiran brazos o se balancean."
+      },
+      {
+        "fila": 4,
+        "accion": "caminar",
+        "detalle": "ciclo de 8 frames"
+      },
+      {
+        "fila": 5,
+        "accion": "correr",
+        "detalle": "ciclo de 8 frames, puede tener frames en el aire"
+      },
+      {
+        "fila": 6,
+        "accion": "dormir",
+        "detalle": "pose baja y acurrucada, ojos cerrados, respira"
+      },
+      {
+        "fila": 7,
+        "accion": "acicalarse",
+        "detalle": "Los animales acercan una pata a la cara; las demás mascotas mueven brazos, hojas o se balancean."
+      },
+      {
+        "fila": 8,
+        "accion": "celebrar / saltar",
+        "detalle": "Ciclo de salto cerrado con regreso al apoyo inicial."
+      },
+      {
+        "fila": 9,
+        "accion": "descansar",
+        "detalle": "Ciclo suave con ojos cerrados; no es una transición unilateral de reposo a sueño."
+      }
+    ]
+  },
+  "como_localizar_un_frame": {
+    "formulas": {
+      "x": "columna * 64",
+      "y": "fila * 64",
+      "recorte": "(x, y, x + 64, y + 64)",
+      "indice_lineal": "fila * 8 + columna"
+    },
+    "ejemplo": {
+      "pedido": "rat_baby, fila 4 (caminar), frame 2",
+      "columna": 2,
+      "fila": 4,
+      "x": 128,
+      "y": 256,
+      "indice_lineal": 34,
+      "verificado": true
+    },
+    "ajustes_por_motor": {
+      "Phaser": "load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); frame = fila*8 + columna",
+      "Godot": "Sprite2D con hframes = 8, vframes = 10, frame = fila*8 + columna; texture_filter = Nearest",
+      "Unity": "Sprite Mode = Multiple, Slice = Grid By Cell Size 64x64, Filter Mode = Point, Compression = None, Pixels Per Unit = 64"
+    }
+  },
+  "paleta": {
+    "colores_totales": 10,
+    "nota": "Toda mascota nueva debe usar solo estos colores. Cada mascota usa un subconjunto (ver 'colores_usados' en cada hoja).",
+    "colores": [
+      {
+        "hex": "#2f2f2e",
+        "rol": "contorno de 1 px y detalles oscuros (ojos, boca)"
+      },
+      {
+        "hex": "#777777",
+        "rol": "gris oscuro: sombra, patas lejanas, pelaje oscuro"
+      },
+      {
+        "hex": "#b5b5b5",
+        "rol": "gris medio: relleno principal o sombra"
+      },
+      {
+        "hex": "#e0e0e0",
+        "rol": "gris claro: pelaje claro, parches, hocico"
+      },
+      {
+        "hex": "#de7586",
+        "rol": "acento rosa: nariz, mejillas, interior de orejas, colas"
+      },
+      {
+        "hex": "#bc7956",
+        "rol": "terracota: relleno principal (golem, planta)"
+      },
+      {
+        "hex": "#855641",
+        "rol": "terracota oscuro: sombra, extremidades, grietas"
+      },
+      {
+        "hex": "#dca27d",
+        "rol": "terracota claro: brillos (golem)"
+      },
+      {
+        "hex": "#7da66b",
+        "rol": "hoja clara"
+      },
+      {
+        "hex": "#49684b",
+        "rol": "hoja oscura"
+      }
+    ]
+  },
+  "mascotas": [
+    {
+      "id": "cat",
+      "archivo": "pets/cat.png",
+      "especie": "cat",
+      "nombre": "gato",
+      "etapa": "adulto",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#b5b5b5",
+        "#e0e0e0"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          24.0,
+          24.0
+        ],
+        "maximo_ancho_alto": [
+          36,
+          24
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "cat_baby",
+      "archivo": "pets/cat_baby.png",
+      "especie": "cat",
+      "nombre": "gato",
+      "etapa": "bebe",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#b5b5b5",
+        "#e0e0e0"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          18.0,
+          18.0
+        ],
+        "maximo_ancho_alto": [
+          28,
+          20
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "golem",
+      "archivo": "pets/golem.png",
+      "especie": "golem",
+      "nombre": "golem terra tiny chibi",
+      "etapa": "adulto",
+      "mira_hacia": "frente",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#49684b",
+        "#7da66b",
+        "#855641",
+        "#bc7956"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          26.0,
+          28.0
+        ],
+        "maximo_ancho_alto": [
+          30,
+          28
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "golem_baby",
+      "archivo": "pets/golem_baby.png",
+      "especie": "golem",
+      "nombre": "golem terra tiny chibi",
+      "etapa": "bebe",
+      "mira_hacia": "frente",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#49684b",
+        "#7da66b",
+        "#855641",
+        "#bc7956"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          20.0,
+          20.0
+        ],
+        "maximo_ancho_alto": [
+          24,
+          20
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "opossum",
+      "archivo": "pets/opossum.png",
+      "especie": "opossum",
+      "nombre": "zarigueya",
+      "etapa": "adulto",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#b5b5b5",
+        "#de7586",
+        "#e0e0e0"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          32.0,
+          24.0
+        ],
+        "maximo_ancho_alto": [
+          38,
+          24
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "opossum_baby",
+      "archivo": "pets/opossum_baby.png",
+      "especie": "opossum",
+      "nombre": "zarigueya",
+      "etapa": "bebe",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#b5b5b5",
+        "#de7586",
+        "#e0e0e0"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          26.0,
+          16.0
+        ],
+        "maximo_ancho_alto": [
+          30,
+          20
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "plant",
+      "archivo": "pets/plant.png",
+      "especie": "plant",
+      "nombre": "planta",
+      "etapa": "adulto",
+      "mira_hacia": "frente",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#49684b",
+        "#7da66b",
+        "#bc7956"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          20.0,
+          26.0
+        ],
+        "maximo_ancho_alto": [
+          24,
+          26
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "plant_baby",
+      "archivo": "pets/plant_baby.png",
+      "especie": "plant",
+      "nombre": "planta",
+      "etapa": "bebe",
+      "mira_hacia": "frente",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#49684b",
+        "#7da66b",
+        "#bc7956"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          16.0,
+          18.0
+        ],
+        "maximo_ancho_alto": [
+          16,
+          18
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "raccoon",
+      "archivo": "pets/raccoon.png",
+      "especie": "raccoon",
+      "nombre": "mapache",
+      "etapa": "adulto",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#777777",
+        "#b5b5b5",
+        "#e0e0e0"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          30.0,
+          24.0
+        ],
+        "maximo_ancho_alto": [
+          36,
+          24
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "raccoon_baby",
+      "archivo": "pets/raccoon_baby.png",
+      "especie": "raccoon",
+      "nombre": "mapache",
+      "etapa": "bebe",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#777777",
+        "#b5b5b5",
+        "#e0e0e0"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          26.0,
+          16.0
+        ],
+        "maximo_ancho_alto": [
+          30,
+          20
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "rat",
+      "archivo": "pets/rat.png",
+      "especie": "rat",
+      "nombre": "rata",
+      "etapa": "adulto",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#b5b5b5",
+        "#de7586"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          34.0,
+          22.0
+        ],
+        "maximo_ancho_alto": [
+          36,
+          24
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "rat_baby",
+      "archivo": "pets/rat_baby.png",
+      "especie": "rat",
+      "nombre": "rata",
+      "etapa": "bebe",
+      "mira_hacia": "derecha",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#b5b5b5",
+        "#de7586"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          26.0,
+          16.0
+        ],
+        "maximo_ancho_alto": [
+          30,
+          20
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "rock",
+      "archivo": "pets/rock.png",
+      "especie": "rock",
+      "nombre": "roca",
+      "etapa": "adulto",
+      "mira_hacia": "frente",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#777777",
+        "#b5b5b5"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          24.0,
+          20.0
+        ],
+        "maximo_ancho_alto": [
+          26,
+          20
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    },
+    {
+      "id": "rock_baby",
+      "archivo": "pets/rock_baby.png",
+      "especie": "rock",
+      "nombre": "roca",
+      "etapa": "bebe",
+      "mira_hacia": "frente",
+      "origen": "Piezas ASCII de bloques mínimos, siguiendo docs/media/adult-cat.gif; exportación entera 2× a celdas de 64 × 64.",
+      "filas_de_accion": "Diez ciclos cerrados compartiendo proporciones, paleta y contorno.",
+      "colores_usados": [
+        "#2f2f2e",
+        "#777777",
+        "#b5b5b5"
+      ],
+      "tamano_sprite_px": {
+        "mediana_ancho_alto": [
+          16.0,
+          14.0
+        ],
+        "maximo_ancho_alto": [
+          18,
+          14
+        ]
+      },
+      "frames_apoyados_en_suelo": "70 de 80",
+      "frames_en_el_aire_o_rebote": 10
+    }
+  ],
+  "reglas_para_agregar_una_mascota_nueva": [
+    "una hoja PNG de 512x640 con 8 columnas x 10 filas de celdas de 64x64",
+    "80 frames, ninguno vacio; cada fila es una accion de la lista de filas_de_animacion",
+    "contorno de 1 px #2f2f2e, pies en la fila 57, centrado en x = 32, sin tocar el borde de la celda",
+    "solo colores de la paleta, alfa 0 o 255",
+    "versiones adulto y bebe como archivos separados: <nombre>.png y <nombre>_baby.png"
+  ],
+  "archivos_obsoletos": {
+    "atlas_unificado.png": "atlas anterior de 512x1920; ya no se actualiza (tiene el gato viejo y no incluye al golem)",
+    "atlas_unificado.json": "descripcion de ese atlas; reemplazada por este archivo",
+    "nota": "no se borraron; pueden eliminarse sin afectar a las hojas individuales"
+  },
+  "limitaciones_conocidas": [
+    "Las pruebas de conectividad, márgenes, paleta y continuidad no sustituyen la valoración visual de las animaciones."
+  ]
+}

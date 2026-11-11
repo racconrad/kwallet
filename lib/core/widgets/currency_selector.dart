@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/currency_conversion.dart';
+
+import 'package:knotes/core/models/currency_conversion.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
 
 class CurrencySelector extends StatelessWidget {
   final String value;
@@ -17,35 +19,35 @@ class CurrencySelector extends StatelessWidget {
     this.label = 'Moneda',
   });
 
-  String _formatLabel(String code) {
-    final name = currencyNames?[code]?.trim();
-    if (name != null && name.isNotEmpty) {
-      return '$code · $name';
-    }
-    return code;
-  }
-
   @override
   Widget build(BuildContext context) {
     final selected = CurrencyConversion.code(value);
-    final codes = {selected, ...options.map(CurrencyConversion.code)}.where((s) => s.isNotEmpty).toList()..sort();
+    final codes = {
+      selected,
+      ...options.map(CurrencyConversion.code),
+    }.where((s) => s.isNotEmpty).toList()..sort();
     return DropdownButtonFormField<String>(
+      borderRadius: dropdownRadius,
       key: ValueKey('$selected:${codes.join(',')}'),
       initialValue: selected,
       isExpanded: true,
       icon: const Icon(Icons.expand_more_rounded),
-      decoration: InputDecoration(labelText: label, prefixIcon: const Icon(Icons.payments_outlined)),
+      decoration: InputDecoration(labelText: label),
       items: [
         for (final code in codes)
           DropdownMenuItem(
             value: code,
-            child: Text(
-              _formatLabel(code),
-              overflow: TextOverflow.ellipsis,
+            child: MenuLabel(
+              Icons.payments_outlined,
+              CurrencyConversion.label(code, currencyNames),
             ),
           ),
       ],
-      onChanged: onChanged == null ? null : (value) { if (value != null) onChanged!(value); },
+      onChanged: onChanged == null
+          ? null
+          : (value) {
+              if (value != null) onChanged!(value);
+            },
     );
   }
 }

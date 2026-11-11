@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import '../../../core/contracts/app_repositories.dart';
-import '../../../core/mvvm/view_model.dart';
-import '../models/account.dart';
-import '../models/category_model.dart';
-import '../models/monthly_movement_summary.dart';
-import '../models/transaction_filter.dart';
-import '../models/transaction_record.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/mvvm/view_model.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/monthly_movement_summary.dart';
+import 'package:knotes/features/bodega/models/transaction_filter.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
 
 class MovementsViewModel extends ViewModel {
   final FinanceRepository repository;
@@ -47,6 +47,7 @@ class MovementsViewModel extends ViewModel {
       if (!next) {
         final nextAccounts = await repository.getAccounts(
           includeArchived: true,
+          includeDeleted: true,
         );
         if (!isCurrent(request)) return;
         accounts = List.unmodifiable(nextAccounts);
@@ -120,6 +121,16 @@ class MovementsViewModel extends ViewModel {
     start = null;
     end = null;
     load();
+  }
+
+  Future<bool> voidMovement(TransactionRecord record) {
+    if (archived || !records.any((tx) => tx.id == record.id)) {
+      return Future.value(false);
+    }
+    return perform(() async {
+      await repository.deleteTransaction(record);
+      await load();
+    }, failure: 'No se pudo anular el movimiento. Reintenta.');
   }
 
   @override

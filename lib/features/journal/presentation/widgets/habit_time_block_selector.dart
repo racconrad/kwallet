@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
 
 class HabitTimeBlockSelector extends StatelessWidget {
   final String selected;
@@ -29,7 +29,7 @@ class HabitTimeBlockSelector extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: KwallTheme.textSecondary,
+            color: KnotesTheme.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -47,8 +47,8 @@ class HabitTimeBlockSelector extends StatelessWidget {
                   icon,
                   size: 16,
                   color: selected == key
-                      ? KwallTheme.onAccent
-                      : KwallTheme.accent,
+                      ? KnotesTheme.onAccent
+                      : KnotesTheme.accent,
                 ),
                 label: Text(
                   label,
@@ -56,17 +56,18 @@ class HabitTimeBlockSelector extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: selected == key
-                        ? KwallTheme.onAccent
-                        : KwallTheme.textPrimary,
+                        ? KnotesTheme.onAccent
+                        : KnotesTheme.textPrimary,
                   ),
                 ),
-                selectedColor: KwallTheme.accent,
-                backgroundColor:
-                    KwallTheme.surfaceContainer.withValues(alpha: 0.5),
+                selectedColor: KnotesTheme.accent,
+                backgroundColor: KnotesTheme.surfaceContainer.withValues(
+                  alpha: 0.5,
+                ),
                 side: BorderSide(
                   color: selected == key
-                      ? KwallTheme.accent
-                      : KwallTheme.border.withValues(alpha: 0.4),
+                      ? KnotesTheme.accent
+                      : KnotesTheme.border.withValues(alpha: 0.4),
                 ),
               ),
           ],

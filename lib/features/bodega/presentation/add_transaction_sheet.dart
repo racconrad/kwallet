@@ -1,27 +1,32 @@
-import '../../../core/theme/category_visuals.dart';
+import 'package:knotes/core/models/currency_conversion.dart';
+import 'package:knotes/core/theme/category_visuals.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/transaction_editor_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../models/account.dart';
-import '../models/category_model.dart';
-import '../models/transaction_record.dart';
-import 'categories_sheet.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/bodega/view_models/transaction_editor_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/features/bodega/presentation/categories_sheet.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
+import 'package:knotes/core/theme/account_visuals.dart';
 
 class AddTransactionSheet extends StatefulWidget {
   final List<Account> accounts;
   final String? preselectedAccountId;
+  final String? preselectedDestinationId;
   final String initialType;
   final String currency;
   const AddTransactionSheet({
     super.key,
     required this.accounts,
     this.preselectedAccountId,
+    this.preselectedDestinationId,
     this.initialType = 'expense',
     this.currency = '\$',
   });
@@ -51,7 +56,9 @@ class _AddTransactionSheetState
     super.initState();
     _account = model.initialAccount(widget.preselectedAccountId);
     final others = widget.accounts.where((a) => a.id != _account);
-    _destination = others.isEmpty ? null : others.first.id;
+    _destination = others.any((a) => a.id == widget.preselectedDestinationId)
+        ? widget.preselectedDestinationId
+        : others.firstOrNull?.id;
   }
 
   @override
@@ -97,31 +104,37 @@ class _AddTransactionSheetState
     if (await model.save(_input) && mounted) Navigator.pop(context);
   }
 
-  Widget _accountPicker({bool destination = false}) =>
-      DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
-        initialValue: destination ? _destination : _account,
-        isExpanded: true,
-        decoration: InputDecoration(
-          labelText: destination ? 'Cuenta destino' : 'Cuenta',
+  Widget _accountPicker({
+    bool destination = false,
+  }) => DropdownButtonFormField<String>(
+    borderRadius: dropdownRadius,
+    icon: const Icon(Icons.expand_more_rounded),
+    initialValue: destination ? _destination : _account,
+    isExpanded: true,
+    decoration: InputDecoration(
+      labelText: destination ? 'Cuenta destino' : 'Cuenta',
+    ),
+    items: [
+      for (final account in widget.accounts)
+        DropdownMenuItem(
+          value: account.id,
+          child: MenuLabel(
+            account.iconData,
+            '${account.name} · ${CurrencyConversion.symbol(account.currency)}',
+            color: account.displayColor,
+          ),
         ),
-        items: [
-          for (final account in widget.accounts)
-            DropdownMenuItem(
-              value: account.id,
-              child: Text('${account.name} · ${account.currency}', overflow: TextOverflow.ellipsis),
-            ),
-        ],
-        onChanged: _saving
-            ? null
-            : (value) => setState(() {
-                if (destination) {
-                  _destination = value;
-                } else {
-                  _account = value!;
-                }
-              }),
-      );
+    ],
+    onChanged: _saving
+        ? null
+        : (value) => setState(() {
+            if (destination) {
+              _destination = value;
+            } else {
+              _account = value!;
+            }
+          }),
+  );
 
   @override
   Widget build(BuildContext context) => SheetBody(
@@ -136,7 +149,7 @@ class _AddTransactionSheetState
               Expanded(
                 child: Text(
                   'Nuevo movimiento',
-                  style: KwallTheme.fontTitle.copyWith(fontSize: 20),
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 20),
                 ),
               ),
               IconButton(
@@ -174,10 +187,11 @@ class _AddTransactionSheetState
           TextField(
             controller: _amount,
             keyboardType: TextInputType.numberWithOptions(decimal: true),
-            style: KwallTheme.fontDisplay.copyWith(fontSize: 28),
+            style: KnotesTheme.fontDisplay.copyWith(fontSize: 28),
             decoration: InputDecoration(
               labelText: 'Monto',
-              prefixText: '${widget.accounts.firstWhere((a) => a.id == _account).currency} ',
+              prefixText:
+                  '${CurrencyConversion.symbol(widget.accounts.firstWhere((a) => a.id == _account).currency)} ',
             ),
           ),
           SizedBox(height: 12),
@@ -200,7 +214,8 @@ class _AddTransactionSheetState
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-              icon: const Icon(Icons.expand_more_rounded),
+                    borderRadius: dropdownRadius,
+                    icon: const Icon(Icons.expand_more_rounded),
                     key: ValueKey('$_type:$_category:${_categories.length}'),
                     initialValue: _category,
                     isExpanded: true,
@@ -209,18 +224,7 @@ class _AddTransactionSheetState
                       for (final category in _categories)
                         DropdownMenuItem(
                           value: category.id,
-                          child: Row(
-                            children: [
-                              Icon(category.iconData, size: 18),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  category.name,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child: MenuLabel(category.iconData, category.name),
                         ),
                     ],
                     onChanged: model.selectCategory,
@@ -279,7 +283,7 @@ class _AddTransactionSheetState
             if (_queue.isNotEmpty) ...[
               Divider(height: 24),
               Text(
-                '${_queue.length} gastos · ${KwallTheme.formatCurrency(model.queueTotal, widget.currency)}',
+                '${_queue.length} gastos · ${KnotesTheme.formatCurrency(model.queueTotal, widget.currency)}',
               ),
               SizedBox(
                 height: 160,
@@ -291,7 +295,7 @@ class _AddTransactionSheetState
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       title: Text(
-                        '${KwallTheme.formatCurrency(tx.amount, widget.currency)} · ${tx.note}',
+                        '${KnotesTheme.formatCurrency(tx.amount, widget.currency)} · ${tx.note}',
                       ),
                       subtitle: Text(DateFormat('dd/MM/yyyy').format(tx.date)),
                       trailing: IconButton(
@@ -310,7 +314,7 @@ class _AddTransactionSheetState
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 _error!,
-                style: TextStyle(color: KwallTheme.expenseRed),
+                style: TextStyle(color: KnotesTheme.expenseRed),
               ),
             ),
           SizedBox(height: 16),

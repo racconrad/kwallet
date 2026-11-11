@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../view_models/planning_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/view_models/planning_view_model.dart';
 
 class AgendaDueNotesPanel extends StatelessWidget {
   final PlanningViewModel model;
 
-  const AgendaDueNotesPanel({
-    super.key,
-    required this.model,
-  });
+  const AgendaDueNotesPanel({super.key, required this.model});
 
   @override
   Widget build(BuildContext context) {
@@ -28,27 +25,30 @@ class AgendaDueNotesPanel extends StatelessWidget {
                 Icon(
                   Icons.event_note_rounded,
                   size: 18,
-                  color: KwallTheme.accent,
+                  color: KnotesTheme.accent,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Pendientes programados',
-                    style: KwallTheme.fontTitle.copyWith(fontSize: 15),
+                    style: KnotesTheme.fontTitle.copyWith(fontSize: 15),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: KwallTheme.accentLight,
-                    borderRadius: BorderRadius.circular(10),
+                    color: KnotesTheme.accentLight,
+                    borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
                   ),
                   child: Text(
                     '${dueItems.where((i) => i.item.done).length}/${dueItems.length}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: KwallTheme.accent,
+                      color: KnotesTheme.accent,
                     ),
                   ),
                 ),
@@ -64,7 +64,11 @@ class AgendaDueNotesPanel extends StatelessWidget {
                       value: entry.item.done,
                       onChanged: (val) {
                         if (val != null) {
-                          model.toggleNoteItem(entry.note, entry.itemIndex, val);
+                          model.toggleNoteItem(
+                            entry.note,
+                            entry.itemIndex,
+                            val,
+                          );
                         }
                       },
                     ),
@@ -77,8 +81,8 @@ class AgendaDueNotesPanel extends StatelessWidget {
                               ? TextDecoration.lineThrough
                               : null,
                           color: entry.item.done
-                              ? KwallTheme.textSecondary
-                              : KwallTheme.textPrimary,
+                              ? KnotesTheme.textSecondary
+                              : KnotesTheme.textPrimary,
                         ),
                       ),
                     ),
@@ -88,14 +92,16 @@ class AgendaDueNotesPanel extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: KwallTheme.surfaceContainer.withValues(alpha: 0.6),
+                        color: KnotesTheme.surfaceContainer.withValues(
+                          alpha: 0.6,
+                        ),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         entry.note.title,
                         style: TextStyle(
                           fontSize: 10,
-                          color: KwallTheme.textSecondary,
+                          color: KnotesTheme.textSecondary,
                         ),
                       ),
                     ),

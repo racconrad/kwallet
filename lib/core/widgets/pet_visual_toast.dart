@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/kwall_theme.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
 
 enum PetVisualToastType {
   xp(Icons.auto_awesome_rounded, Colors.amber),
@@ -67,13 +67,15 @@ class _VisualToastWidgetState extends State<_VisualToastWidget>
       duration: const Duration(milliseconds: 320),
     );
 
-    _slideAnimation = Tween<double>(begin: -30, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _slideAnimation = Tween<double>(
+      begin: -30,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     _controller.forward();
 
@@ -102,10 +104,7 @@ class _VisualToastWidgetState extends State<_VisualToastWidget>
           builder: (context, child) {
             return Transform.translate(
               offset: Offset(0, _slideAnimation.value),
-              child: Opacity(
-                opacity: _fadeAnimation.value,
-                child: child,
-              ),
+              child: Opacity(opacity: _fadeAnimation.value, child: child),
             );
           },
           child: Material(
@@ -113,8 +112,8 @@ class _VisualToastWidgetState extends State<_VisualToastWidget>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: KwallTheme.surface,
-                borderRadius: BorderRadius.circular(24),
+                color: KnotesTheme.surface,
+                borderRadius: BorderRadius.circular(KnotesTheme.radiusLg),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.12),
@@ -133,14 +132,10 @@ class _VisualToastWidgetState extends State<_VisualToastWidget>
                   Icon(
                     Icons.pets_rounded,
                     size: 16,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                   ),
                   const SizedBox(width: 8),
-                  Icon(
-                    widget.type.icon,
-                    size: 20,
-                    color: widget.type.color,
-                  ),
+                  Icon(widget.type.icon, size: 20, color: widget.type.color),
                   if (widget.badgeValue != null) ...[
                     const SizedBox(width: 6),
                     Text(

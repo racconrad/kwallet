@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../models/journal_models.dart';
-import 'journal_sheets.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/journal/presentation/journal_sheets.dart';
 
 Future<void> editHabit(BuildContext context, {Habit? habit}) async {
   await showModalBottomSheet(

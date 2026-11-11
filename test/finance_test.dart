@@ -6,16 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kwall/core/database/database_service.dart';
-import 'package:kwall/features/bodega/models/budget_model.dart';
-import 'package:kwall/features/bodega/models/finance_overview.dart';
-import 'package:kwall/features/bodega/models/planned_expense.dart';
-import 'package:kwall/features/bodega/models/transaction_record.dart';
-import 'package:kwall/main.dart';
-import 'package:kwall/core/database/database_backup.dart';
-import 'package:kwall/features/journal/models/journal_models.dart';
-import 'package:kwall/features/bodega/models/account.dart';
-import 'package:kwall/features/bodega/models/transaction_filter.dart';
+import 'package:knotes/core/database/database_service.dart';
+import 'package:knotes/features/bodega/models/budget_model.dart';
+import 'package:knotes/features/bodega/models/finance_overview.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
+import 'package:knotes/features/bodega/models/transaction_record.dart';
+import 'package:knotes/main.dart';
+import 'package:knotes/core/database/database_backup.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/models/transaction_filter.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 PlannedExpense plan({String recurrence = 'monthly', DateTime? date}) =>
@@ -142,7 +142,9 @@ void main() {
   });
 
   test('Versions 2 and 3 survive the version 6 migration', () async {
-    final directory = await Directory.systemTemp.createTemp('kwall-migration-');
+    final directory = await Directory.systemTemp.createTemp(
+      'knotes-migration-',
+    );
     addTearDown(() => directory.delete(recursive: true));
     for (final legacyVersion in [2, 3]) {
       final path = '${directory.path}/legacy-$legacyVersion.db';
@@ -236,7 +238,7 @@ void main() {
   });
 
   test('Portable backups preserve all features and failed restores leave data intact', () async {
-    final directory = await Directory.systemTemp.createTemp('kwall-backup-');
+    final directory = await Directory.systemTemp.createTemp('knotes-backup-');
     addTearDown(() => directory.delete(recursive: true));
     final service = DatabaseService.atPath(
       '${directory.path}/data.db',
@@ -282,7 +284,7 @@ void main() {
     await service.saveHabit('h', 'Caminar');
     await service.logHabit('h', day, completed: true, mood: 'happy');
     await service.logHabit('h', day, completed: true, mood: 'happy');
-    expect(await service.getExperience(), 25);
+    expect(await service.getExperience(), 45);
     final habit = (await service.getHabits()).single;
     expect(habit.streak(day), 1);
     await service.logHabit(
@@ -301,11 +303,11 @@ void main() {
       throwsStateError,
     );
     expect((await service.getHabits()).single.logs.length, 2);
-    expect(await service.getExperience(), 25);
+    expect(await service.getExperience(), 45);
     await service.logHabitDays(['h'], previousDays, completed: true);
     await service.logHabitDays(['h'], previousDays, completed: true);
     expect((await service.getHabits()).single.logs.length, 4);
-    expect(await service.getExperience(), 45);
+    expect(await service.getExperience(), 65);
     await expectLater(
       service.logHabitDays(
         ['h'],
@@ -320,7 +322,18 @@ void main() {
     );
     expect((await service.getNotes()).single.items.single.done, true);
     final source = await service.exportFullDataAsJson();
+    expect(jsonDecode(source)['app'], 'knotes');
     expect(jsonDecode(source)['version'], DatabaseBackup.version);
+    final oldBrand = jsonDecode(source) as Map<String, dynamic>;
+    oldBrand['app'] = 'kwall';
+    await service.importFullDataFromJson(jsonEncode(oldBrand));
+    expect((await service.getNotes()).single.items.single.done, true);
+    final otherApp = jsonDecode(source) as Map<String, dynamic>;
+    otherApp['app'] = 'another-app';
+    expect(
+      () => DatabaseBackup.decode(jsonEncode(otherApp)),
+      throwsFormatException,
+    );
     final broken = jsonDecode(source) as Map<String, dynamic>;
     broken['data']['accounts'][0]['balance'] = 1;
     await expectLater(
@@ -553,7 +566,7 @@ void main() {
   );
 
   testWidgets('Main flows render on compact and wide screens', (tester) async {
-    if (const bool.fromEnvironment('KWALL_CAPTURE')) {
+    if (const bool.fromEnvironment('KNOTES_CAPTURE')) {
       await tester.runAsync(() async {
         final config = File('.dart_tool/package_config.json').absolute;
         final packages =
@@ -654,7 +667,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     final captureKey = GlobalKey();
     Future<void> capture(String name) async {
-      if (!const bool.fromEnvironment('KWALL_CAPTURE')) return;
+      if (!const bool.fromEnvironment('KNOTES_CAPTURE')) return;
       final boundary =
           captureKey.currentContext!.findRenderObject()!
               as RenderRepaintBoundary;
@@ -673,7 +686,7 @@ void main() {
       tester.view.physicalSize = size;
       await tester.runAsync(() async {
         await tester.pumpWidget(
-          RepaintBoundary(key: captureKey, child: const KwallApp()),
+          RepaintBoundary(key: captureKey, child: const KnotesApp()),
         );
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });

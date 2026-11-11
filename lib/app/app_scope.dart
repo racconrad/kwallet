@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'app_dependencies.dart';
+import 'package:knotes/app/app_dependencies.dart';
 
 class AppScope extends InheritedWidget {
   final AppDependencies dependencies;

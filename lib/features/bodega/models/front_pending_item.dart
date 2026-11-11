@@ -70,12 +70,18 @@ class FrontPendingItem {
       category: map['category'] as String,
       title: map['title'] as String,
       subtitle: (map['subtitle'] as String?) ?? '',
-      dueDate: map['due_date'] != null ? DateTime.tryParse(map['due_date'] as String) : null,
+      dueDate: map['due_date'] != null
+          ? DateTime.tryParse(map['due_date'] as String)
+          : null,
       sourceId: map['source_id'] as String,
       sourceIndex: map['source_index'] as int?,
       isCompleted: (map['is_completed'] as int? ?? 0) == 1,
-      createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(map['updated_at'] as String? ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(map['created_at'] as String? ?? '') ??
+          DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(map['updated_at'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 }

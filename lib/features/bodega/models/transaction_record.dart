@@ -15,7 +15,10 @@ class TransactionRecord {
   final DateTime createdAt;
 
   TransactionRecord({
-    this.currency, this.toCurrency, this.toAmount, this.exchangeRate,
+    this.currency,
+    this.toCurrency,
+    this.toAmount,
+    this.exchangeRate,
     required this.id,
     required this.accountId,
     this.toAccountId,
@@ -30,7 +33,10 @@ class TransactionRecord {
 
   Map<String, dynamic> toMap() {
     return {
-      'currency': currency, 'to_currency': toCurrency, 'to_amount': toAmount, 'exchange_rate': exchangeRate,
+      'currency': currency,
+      'to_currency': toCurrency,
+      'to_amount': toAmount,
+      'exchange_rate': exchangeRate,
       'id': id,
       'account_id': accountId,
       'to_account_id': toAccountId,
@@ -45,8 +51,10 @@ class TransactionRecord {
 
   factory TransactionRecord.fromMap(Map<String, dynamic> map) {
     return TransactionRecord(
-      currency: map['currency'] as String?, toCurrency: map['to_currency'] as String?,
-      toAmount: (map['to_amount'] as num?)?.toDouble(), exchangeRate: (map['exchange_rate'] as num?)?.toDouble(),
+      currency: map['currency'] as String?,
+      toCurrency: map['to_currency'] as String?,
+      toAmount: (map['to_amount'] as num?)?.toDouble(),
+      exchangeRate: (map['exchange_rate'] as num?)?.toDouble(),
       id: map['id'] as String,
       accountId: map['account_id'] as String,
       toAccountId: map['to_account_id'] as String?,
@@ -61,6 +69,10 @@ class TransactionRecord {
           DateTime.now(),
     );
   }
+
+  bool get isAdjustment => type == 'adjustment_in' || type == 'adjustment_out';
+  bool get isPositive => isIncome || type == 'adjustment_in';
+  bool get isNegative => isExpense || type == 'adjustment_out';
 
   bool get isExpense => type == 'expense';
   bool get isIncome => type == 'income';

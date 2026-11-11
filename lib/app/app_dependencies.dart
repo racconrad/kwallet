@@ -1,20 +1,21 @@
-import '../core/contracts/app_repositories.dart';
-import '../core/database/database_service.dart';
-import '../core/services/device_files.dart';
-import '../features/bodega/models/account.dart';
-import '../features/bodega/view_models/account_editor_view_model.dart';
-import '../features/bodega/view_models/budget_editor_view_model.dart';
-import '../features/bodega/view_models/categories_view_model.dart';
-import '../features/bodega/view_models/home_view_model.dart';
-import '../features/bodega/view_models/movements_view_model.dart';
-import '../features/bodega/view_models/planning_view_model.dart';
-import '../features/bodega/view_models/plan_editor_view_model.dart';
-import '../features/bodega/view_models/transaction_editor_view_model.dart';
-import '../features/journal/view_models/journal_actions_view_model.dart';
-import '../features/journal/view_models/journal_view_model.dart';
-import '../features/settings/view_models/settings_view_model.dart';
-import '../features/welcome/view_models/launch_view_model.dart';
-import 'app_view_model.dart';
+import 'package:knotes/features/bodega/view_models/statistics_view_model.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/core/database/database_service.dart';
+import 'package:knotes/core/services/device_files.dart';
+import 'package:knotes/features/bodega/models/account.dart';
+import 'package:knotes/features/bodega/view_models/account_editor_view_model.dart';
+import 'package:knotes/features/bodega/view_models/budget_editor_view_model.dart';
+import 'package:knotes/features/bodega/view_models/categories_view_model.dart';
+import 'package:knotes/features/bodega/view_models/home_view_model.dart';
+import 'package:knotes/features/bodega/view_models/movements_view_model.dart';
+import 'package:knotes/features/bodega/view_models/planning_view_model.dart';
+import 'package:knotes/features/bodega/view_models/plan_editor_view_model.dart';
+import 'package:knotes/features/bodega/view_models/transaction_editor_view_model.dart';
+import 'package:knotes/features/journal/view_models/journal_actions_view_model.dart';
+import 'package:knotes/features/journal/view_models/journal_view_model.dart';
+import 'package:knotes/features/settings/view_models/settings_view_model.dart';
+import 'package:knotes/features/welcome/view_models/launch_view_model.dart';
+import 'package:knotes/app/app_view_model.dart';
 
 class AppDependencies {
   final FinanceRepository finance;
@@ -37,7 +38,8 @@ class AppDependencies {
     );
   }
   AppViewModel app() => AppViewModel(settings)..load();
-  HomeViewModel home() => HomeViewModel(finance, journal, settings, files: files)..load();
+  HomeViewModel home() =>
+      HomeViewModel(finance, journal, settings, files: files)..load();
   LaunchViewModel launch() => LaunchViewModel(settings, files: files)..load();
   JournalViewModel journalScreen() =>
       JournalViewModel(journal, settings)..load();
@@ -46,10 +48,12 @@ class AppDependencies {
       SettingsViewModel(settings, files)..load();
   PlanningViewModel planning() =>
       PlanningViewModel(finance, settings, journal)..load(restoreRange: true);
+  StatisticsViewModel statistics() => StatisticsViewModel(finance)..load();
   MovementsViewModel movements() => MovementsViewModel(finance)..load();
   CategoriesViewModel categories(String type) =>
       CategoriesViewModel(finance, type)..load();
-  AccountEditorViewModel accountEditor() => AccountEditorViewModel(finance, settings)..loadCurrencies();
+  AccountEditorViewModel accountEditor() =>
+      AccountEditorViewModel(finance, settings)..loadCurrencies();
   BudgetEditorViewModel budgetEditor() => BudgetEditorViewModel(finance);
   PlanEditorViewModel planEditor() => PlanEditorViewModel(finance);
   TransactionEditorViewModel transactionEditor(

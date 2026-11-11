@@ -7,7 +7,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../models/pet_species.dart';
+import 'package:knotes/core/models/pet_species.dart';
+import 'package:knotes/core/services/pet_atlas.dart';
+import 'package:knotes/core/widgets/pet_atlas_painter.dart';
 
 enum PetActivity { idle, walk, run, sleep, curious, celebrate, relax, grabbed }
 
@@ -19,6 +21,7 @@ class KittyCompanionWidget extends StatefulWidget {
   final String name;
   final double size;
   final VoidCallback? onPet;
+  final ValueChanged<PetActivity>? onActivityChanged;
   final String? imagePath;
   final int reward;
   const KittyCompanionWidget({
@@ -28,6 +31,7 @@ class KittyCompanionWidget extends StatefulWidget {
     this.name = 'Mishi',
     this.size = 96,
     this.onPet,
+    this.onActivityChanged,
     this.imagePath,
     this.reward = 0,
   });
@@ -53,9 +57,11 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
   static String? _imageData;
   static Uint8List? _imageBytes;
   ui.Image? _atlas;
+  PetAtlasLayout? _layout;
   Uint8List? _customImage;
   Timer? _timer;
   PetActivity? _reaction;
+  PetActivity? _reportedActivity;
   int _frame = 0;
   int _pets = 0;
   bool _foreground = true;
@@ -66,14 +72,14 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
       : widget.imagePath ?? widget.settings['pet_image'];
   PetActivity get _activity => _reaction ?? widget.activity;
   (int, int, int) get _sequence => switch (_activity) {
-    PetActivity.idle => (0, 4, 320),
+    PetActivity.idle => (0, 8, 240),
     PetActivity.walk => (4, 8, 120),
     PetActivity.run => (5, 8, 90),
-    PetActivity.sleep => (6, 4, 420),
-    PetActivity.curious => (7, 6, 140),
-    PetActivity.celebrate => (8, 7, 100),
+    PetActivity.sleep => (6, 8, 320),
+    PetActivity.curious => (1, 8, 180),
+    PetActivity.celebrate => (8, 8, 100),
     PetActivity.relax => (9, 8, 160),
-    PetActivity.grabbed => (8, 4, 180),
+    PetActivity.grabbed => (8, 8, 180),
   };
 
   String get _currentAsset => PetSpeciesCatalog.resolveAsset(
@@ -91,9 +97,17 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
 
   void _loadCurrentAtlas() {
     final asset = _currentAsset;
-    KittyCompanionWidget.loadAtlas(asset).then((image) {
-      if (mounted) setState(() => _atlas = image);
-    }, onError: (_, _) {});
+    PetAtlas.loadLayout()
+        .then((layout) async {
+          final image = await KittyCompanionWidget.loadAtlas(asset);
+          if (mounted && asset == _currentAsset) {
+            setState(() {
+              _atlas = image;
+              _layout = layout;
+            });
+          }
+        })
+        .catchError((Object _, StackTrace _) {});
   }
 
   void _readImage() {
@@ -201,6 +215,13 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
 
   @override
   Widget build(BuildContext context) {
+    if (_reportedActivity != _activity) {
+      _reportedActivity = _activity;
+      final activity = _activity;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onActivityChanged?.call(activity);
+      });
+    }
     final image = _customImage != null
         ? Image.memory(
             _customImage!,
@@ -262,10 +283,14 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
 
   Widget _sprite() {
     final sprite = CustomPaint(
-      painter: _AtlasPainter(
+      painter: PetAtlasPainter(
         _atlas,
-        _sequence.$1,
-        _enabled ? _frame % _sequence.$2 : 0,
+        _layout?.frameRect(
+          species: PetSpeciesCatalog.get(widget.settings['pet_style']).species,
+          stage: PetGrowthStage.fromXp(widget.reward),
+          row: _sequence.$1,
+          frame: _enabled ? _frame % _sequence.$2 : 0,
+        ),
       ),
     );
     final style = widget.settings['pet_style'];
@@ -275,32 +300,4 @@ class _KittyCompanionWidgetState extends State<KittyCompanionWidget>
     }
     return sprite;
   }
-}
-
-class _AtlasPainter extends CustomPainter {
-  final ui.Image? atlas;
-  final int row;
-  final int frame;
-  _AtlasPainter(this.atlas, this.row, this.frame);
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (atlas == null) return;
-    // Full 32x32 frame cell ensures no tails, ears, or snouts are clipped
-    final source = Rect.fromLTWH(frame * 32.0, row * 32.0, 32.0, 32.0);
-    final target = Rect.fromLTWH(0, 0, size.width, size.height);
-    canvas.drawImageRect(
-      atlas!,
-      source,
-      target,
-      Paint()
-        ..filterQuality = FilterQuality.none
-        ..isAntiAlias = false,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_AtlasPainter oldDelegate) =>
-      atlas != oldDelegate.atlas ||
-      row != oldDelegate.row ||
-      frame != oldDelegate.frame;
 }

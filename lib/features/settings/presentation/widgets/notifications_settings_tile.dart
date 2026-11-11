@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/services/notification_service.dart';
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
+import 'package:knotes/core/services/notification_service.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
 
 class NotificationsSettingsTile extends StatelessWidget {
   final Map<String, String> settings;
@@ -14,7 +14,11 @@ class NotificationsSettingsTile extends StatelessWidget {
     required this.onToggle,
   });
 
-  Future<void> _pickTime(BuildContext context, String key, String defaultVal) async {
+  Future<void> _pickTime(
+    BuildContext context,
+    String key,
+    String defaultVal,
+  ) async {
     final raw = settings[key] ?? defaultVal;
     final parts = raw.split(':').map((s) => int.tryParse(s) ?? 0).toList();
     final initial = TimeOfDay(
@@ -37,6 +41,77 @@ class NotificationsSettingsTile extends StatelessWidget {
     }
   }
 
+  Future<void> _editMessages(BuildContext context) async {
+    final fields = {
+      'day_start_message': (
+        'Inicio del día',
+        NotificationService.defaultDayStartMessage,
+      ),
+      'day_end_message': (
+        'Cierre del día',
+        NotificationService.defaultDayEndMessage,
+      ),
+      'habit_reminder_message': (
+        'Recordatorio de hábito',
+        NotificationService.defaultHabitMessage,
+      ),
+    };
+    final controllers = {
+      for (final key in fields.keys)
+        key: TextEditingController(text: settings[key] ?? ''),
+    };
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Tus mensajes'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Usa {pet} para el nombre de tu compañero y {habit} para el hábito. Vacío usa el mensaje de siempre.',
+                style: TextStyle(
+                  color: KnotesTheme.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              for (final MapEntry(key: key, value: (label, hint))
+                  in fields.entries) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controllers[key],
+                  maxLength: 140,
+                  maxLines: 2,
+                  minLines: 1,
+                  decoration: InputDecoration(labelText: label, hintText: hint),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (saved == true) {
+      for (final entry in controllers.entries) {
+        await onToggle(entry.key, entry.value.text.trim());
+      }
+    }
+    for (final c in controllers.values) {
+      c.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final enabled = settings['notifications_enabled'] == 'true';
@@ -53,7 +128,8 @@ class NotificationsSettingsTile extends StatelessWidget {
 
     Future<void> handleSwitch(bool val) async {
       if (val) {
-        final granted = await NotificationService.requestNotificationPermission();
+        final granted =
+            await NotificationService.requestNotificationPermission();
         if (granted) {
           await onToggle('notifications_enabled', 'true');
         } else {
@@ -65,10 +141,7 @@ class NotificationsSettingsTile extends StatelessWidget {
                 content: const Text(
                   'No se pudieron activar las notificaciones. Los permisos están desactivados en tu dispositivo.',
                 ),
-                action: SnackBarAction(
-                  label: 'Entendido',
-                  onPressed: () {},
-                ),
+                action: SnackBarAction(label: 'Entendido', onPressed: () {}),
               ),
             );
           }
@@ -87,13 +160,13 @@ class NotificationsSettingsTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: KwallTheme.accentLight,
+                  color: KnotesTheme.accentLight,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.notifications_active_outlined,
                   size: 20,
-                  color: KwallTheme.accent,
+                  color: KnotesTheme.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -103,7 +176,7 @@ class NotificationsSettingsTile extends StatelessWidget {
                   children: [
                     Text(
                       'Notificaciones y Rutinas',
-                      style: KwallTheme.fontTitle.copyWith(fontSize: 16),
+                      style: KnotesTheme.fontTitle.copyWith(fontSize: 16),
                     ),
                     Text(
                       enabled
@@ -111,7 +184,7 @@ class NotificationsSettingsTile extends StatelessWidget {
                           : 'Desactivadas por completo',
                       style: TextStyle(
                         fontSize: 12,
-                        color: KwallTheme.textSecondary,
+                        color: KnotesTheme.textSecondary,
                       ),
                     ),
                   ],
@@ -119,14 +192,14 @@ class NotificationsSettingsTile extends StatelessWidget {
               ),
               Switch(
                 value: enabled,
-                activeThumbColor: KwallTheme.accent,
+                activeThumbColor: KnotesTheme.accent,
                 onChanged: handleSwitch,
               ),
             ],
           ),
           if (enabled) ...[
             const SizedBox(height: 12),
-            Divider(color: KwallTheme.border.withValues(alpha: 0.3)),
+            Divider(color: KnotesTheme.border.withValues(alpha: 0.3)),
 
             // 1. Inicio de día (Flow Start)
             Padding(
@@ -135,7 +208,7 @@ class NotificationsSettingsTile extends StatelessWidget {
                 children: [
                   Checkbox(
                     value: notifyStart,
-                    activeColor: KwallTheme.accent,
+                    activeColor: KnotesTheme.accent,
                     onChanged: (val) =>
                         onToggle('notify_day_start', (val ?? true).toString()),
                   ),
@@ -154,7 +227,7 @@ class NotificationsSettingsTile extends StatelessWidget {
                           'Motivación para registrar y arrancar tu día',
                           style: TextStyle(
                             fontSize: 12,
-                            color: KwallTheme.textSecondary,
+                            color: KnotesTheme.textSecondary,
                           ),
                         ),
                       ],
@@ -162,7 +235,10 @@ class NotificationsSettingsTile extends StatelessWidget {
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                     onPressed: notifyStart
@@ -182,7 +258,7 @@ class NotificationsSettingsTile extends StatelessWidget {
                 children: [
                   Checkbox(
                     value: notifyEnd,
-                    activeColor: KwallTheme.accent,
+                    activeColor: KnotesTheme.accent,
                     onChanged: (val) =>
                         onToggle('notify_day_end', (val ?? true).toString()),
                   ),
@@ -201,7 +277,7 @@ class NotificationsSettingsTile extends StatelessWidget {
                           'Recordatorio para cerrar gastos y hábitos antes de dormir',
                           style: TextStyle(
                             fontSize: 12,
-                            color: KwallTheme.textSecondary,
+                            color: KnotesTheme.textSecondary,
                           ),
                         ),
                       ],
@@ -209,7 +285,10 @@ class NotificationsSettingsTile extends StatelessWidget {
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                     onPressed: notifyEnd
@@ -222,26 +301,55 @@ class NotificationsSettingsTile extends StatelessWidget {
               ),
             ),
 
-            Divider(color: KwallTheme.border.withValues(alpha: 0.3)),
+            Divider(color: KnotesTheme.border.withValues(alpha: 0.3)),
 
             // Otras categorías
             CheckboxListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              title: const Text('Finanzas y compromisos'),
-              subtitle: const Text('Avisos de vencimientos y presupuestos'),
+              title: const Text('Pagos y fechas de la agenda'),
+              subtitle: const Text(
+                'A tu hora de inicio del día, antes de que venzan',
+              ),
               value: notifyFinances,
-              activeColor: KwallTheme.accent,
-              onChanged: (val) => onToggle('notify_finances', (val ?? true).toString()),
+              activeColor: KnotesTheme.accent,
+              onChanged: (val) =>
+                  onToggle('notify_finances', (val ?? true).toString()),
             ),
+            if (notifyFinances)
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: DropdownButton<String>(
+                  value:
+                      const [
+                        '0',
+                        '1',
+                        '3',
+                        '7',
+                      ].contains(settings['plan_reminder_days'])
+                      ? settings['plan_reminder_days']
+                      : '1',
+                  underline: const SizedBox.shrink(),
+                  items: const [
+                    DropdownMenuItem(value: '0', child: Text('El mismo día')),
+                    DropdownMenuItem(value: '1', child: Text('1 día antes')),
+                    DropdownMenuItem(value: '3', child: Text('3 días antes')),
+                    DropdownMenuItem(value: '7', child: Text('1 semana antes')),
+                  ],
+                  onChanged: (v) => onToggle('plan_reminder_days', v ?? '1'),
+                ),
+              ),
             CheckboxListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
               title: const Text('Hábitos diarios'),
-              subtitle: const Text('Recordatorios según el bloque del día'),
+              subtitle: const Text(
+                'A la hora que elijas en cada hábito y meta; no avisa si ya lo marcaste.',
+              ),
               value: notifyHabits,
-              activeColor: KwallTheme.accent,
-              onChanged: (val) => onToggle('notify_habits', (val ?? true).toString()),
+              activeColor: KnotesTheme.accent,
+              onChanged: (val) =>
+                  onToggle('notify_habits', (val ?? true).toString()),
             ),
             CheckboxListTile(
               dense: true,
@@ -249,8 +357,9 @@ class NotificationsSettingsTile extends StatelessWidget {
               title: const Text('Mascota y compañero'),
               subtitle: const Text('Alertas de cariño y estado de ánimo'),
               value: notifyPet,
-              activeColor: KwallTheme.accent,
-              onChanged: (val) => onToggle('notify_pet', (val ?? true).toString()),
+              activeColor: KnotesTheme.accent,
+              onChanged: (val) =>
+                  onToggle('notify_pet', (val ?? true).toString()),
             ),
 
             const SizedBox(height: 8),
@@ -258,6 +367,11 @@ class NotificationsSettingsTile extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
+                FilledButton.tonalIcon(
+                  onPressed: () => _editMessages(context),
+                  icon: const Icon(Icons.edit_notifications_outlined, size: 16),
+                  label: const Text('Personalizar mensajes'),
+                ),
                 OutlinedButton.icon(
                   onPressed: () {
                     NotificationService.showDayStartNotification(

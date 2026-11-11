@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/kwall_theme.dart';
-import '../../../../core/widgets/finance_widgets.dart';
-import '../../models/planned_expense.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/bodega/models/planned_expense.dart';
 
 class PlanCalendar extends StatelessWidget {
   final DateTime month;
@@ -60,7 +60,7 @@ class PlanCalendar extends StatelessWidget {
                 child: Text(
                   '${months[month.month - 1]} ${month.year}',
                   textAlign: TextAlign.center,
-                  style: KwallTheme.fontTitle.copyWith(fontSize: 18),
+                  style: KnotesTheme.fontTitle.copyWith(fontSize: 18),
                 ),
               ),
               IconButton(
@@ -77,7 +77,7 @@ class PlanCalendar extends StatelessWidget {
                   child: Center(
                     child: Text(
                       day,
-                      style: TextStyle(color: KwallTheme.textSecondary),
+                      style: TextStyle(color: KnotesTheme.textSecondary),
                     ),
                   ),
                 ),
@@ -112,10 +112,12 @@ class PlanCalendar extends StatelessWidget {
                     child: Container(
                       margin: EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: selected ? KwallTheme.accentLight : null,
-                        borderRadius: BorderRadius.circular(10),
+                        color: selected ? KnotesTheme.accentLight : null,
+                        borderRadius: BorderRadius.circular(
+                          KnotesTheme.radiusSm,
+                        ),
                         border: today
-                            ? Border.all(color: KwallTheme.accent, width: 2)
+                            ? Border.all(color: KnotesTheme.accent, width: 2)
                             : null,
                       ),
                       child: Column(
@@ -129,13 +131,13 @@ class PlanCalendar extends StatelessWidget {
                                 Container(
                                   width: 5,
                                   height: 5,
-                                  color: KwallTheme.accent,
+                                  color: KnotesTheme.accent,
                                 ),
                               if (events.any((p) => p.amount == 0))
                                 Icon(
                                   Icons.star_rounded,
                                   size: 9,
-                                  color: KwallTheme.incomeGreen,
+                                  color: KnotesTheme.incomeGreen,
                                 ),
                             ],
                           ),
@@ -150,7 +152,7 @@ class PlanCalendar extends StatelessWidget {
           SizedBox(height: 10),
           Text(
             'Cuadrado: pagos · Estrella: días especiales',
-            style: TextStyle(color: KwallTheme.textSecondary, fontSize: 12),
+            style: TextStyle(color: KnotesTheme.textSecondary, fontSize: 12),
           ),
         ],
       ),

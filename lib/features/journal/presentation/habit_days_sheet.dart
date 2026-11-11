@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/journal_actions_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../models/journal_models.dart';
-import 'journal_sheets.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/journal/view_models/journal_actions_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/journal/presentation/journal_sheets.dart';
 
 class HabitDaysSheet extends StatefulWidget {
   final Habit habit;
@@ -70,12 +70,12 @@ class _HabitDaysSheetState
         children: [
           Text(
             widget.habit.title,
-            style: KwallTheme.fontTitle.copyWith(fontSize: 22),
+            style: KnotesTheme.fontTitle.copyWith(fontSize: 22),
           ),
           const SizedBox(height: 8),
           Text(
             'Elige tus días',
-            style: TextStyle(color: KwallTheme.textSecondary),
+            style: TextStyle(color: KnotesTheme.textSecondary),
           ),
           Row(
             children: [
@@ -114,7 +114,7 @@ class _HabitDaysSheetState
                   child: Text(
                     label,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: KwallTheme.textSecondary),
+                    style: TextStyle(color: KnotesTheme.textSecondary),
                   ),
                 ),
             ],
@@ -145,11 +145,11 @@ class _HabitDaysSheetState
                 label: DateFormat('d MMMM', 'es').format(date),
                 child: Material(
                   color: selected
-                      ? KwallTheme.accent
-                      : KwallTheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(12),
+                      ? KnotesTheme.accent
+                      : KnotesTheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
                     onTap: future || _saving
                         ? null
                         : () {
@@ -166,12 +166,12 @@ class _HabitDaysSheetState
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: selected
-                                ? KwallTheme.onAccent
+                                ? KnotesTheme.onAccent
                                 : future
-                                ? KwallTheme.textSecondary.withValues(
+                                ? KnotesTheme.textSecondary.withValues(
                                     alpha: .45,
                                   )
-                                : KwallTheme.textPrimary,
+                                : KnotesTheme.textPrimary,
                           ),
                         ),
                         if (log != null)
@@ -181,8 +181,8 @@ class _HabitDaysSheetState
                                 : Icons.remove_rounded,
                             size: 12,
                             color: selected
-                                ? KwallTheme.onAccent
-                                : KwallTheme.accent,
+                                ? KnotesTheme.onAccent
+                                : KnotesTheme.accent,
                           ),
                       ],
                     ),

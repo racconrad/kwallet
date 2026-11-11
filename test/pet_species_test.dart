@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kwall/core/models/pet_species.dart';
-import 'package:kwall/core/widgets/pet_selection_panel.dart';
+import 'package:knotes/core/models/pet_species.dart';
+import 'package:knotes/core/widgets/pet_selection_panel.dart';
 
 void main() {
   group('PetSpecies and Catalog Tests', () {
@@ -51,31 +51,17 @@ void main() {
       expect(PetGrowthStage.master.scale, equals(1.15));
     });
 
-    test('Asset resolution uses baby atlas for all species under 200 XP', () {
-      expect(
-        PetSpeciesCatalog.resolveAsset('classic', xp: 50),
-        equals('assets/pets/cat_baby.png'),
-      );
-      expect(
-        PetSpeciesCatalog.resolveAsset('classic', xp: 250),
-        equals('assets/pets/cat.png'),
-      );
-      expect(
-        PetSpeciesCatalog.resolveAsset('rat_snow', xp: 50),
-        equals('assets/pets/rat_baby.png'),
-      );
-      expect(
-        PetSpeciesCatalog.resolveAsset('rat_snow', xp: 250),
-        equals('assets/pets/rat.png'),
-      );
-      expect(
-        PetSpeciesCatalog.resolveAsset('raccoon_classic', xp: 50),
-        equals('assets/pets/raccoon_baby.png'),
-      );
-      expect(
-        PetSpeciesCatalog.resolveAsset('raccoon_classic', xp: 250),
-        equals('assets/pets/raccoon.png'),
-      );
+    test('Every style resolves its species and growth sheet', () {
+      for (final style in PetSpeciesCatalog.styles.values) {
+        for (final xp in [0, 199, 200, 599, 600]) {
+          expect(
+            PetSpeciesCatalog.resolveAsset(style.key, xp: xp),
+            'assets/pets/${style.species.name}${xp < 200 ? '_baby' : ''}.png',
+          );
+        }
+      }
+      expect(PetSpeciesCatalog.get('unknown').key, 'classic');
+      expect(PetSpeciesCatalog.resolveAsset(null), 'assets/pets/cat_baby.png');
     });
 
     test('Random pet selection returns valid style', () {
@@ -91,25 +77,6 @@ void main() {
       expect(randomRaccoon.species, equals(PetSpecies.raccoon));
       for (final species in PetSpecies.values) {
         expect(PetSpeciesCatalog.pickRandom(species: species).species, species);
-      }
-    });
-
-    test('New companions grow into their own adult assets', () {
-      for (final species in ['opossum', 'rock', 'plant']) {
-        final key = '${species}_classic';
-        expect(PetSpeciesCatalog.get(key).key, key);
-        expect(
-          PetSpeciesCatalog.resolveAsset(key, xp: 199),
-          'assets/pets/${species}_baby.png',
-        );
-        expect(
-          PetSpeciesCatalog.resolveAsset(key, xp: 200),
-          'assets/pets/$species.png',
-        );
-        expect(
-          PetSpeciesCatalog.resolveAsset(key, xp: 600),
-          'assets/pets/$species.png',
-        );
       }
     });
   });
