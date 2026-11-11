@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/journal_actions_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../../../core/widgets/pet_visual_toast.dart';
-import '../models/journal_models.dart';
-import 'journal_sheets.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/journal/view_models/journal_actions_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/core/widgets/pet_visual_toast.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/journal/presentation/journal_sheets.dart';
 
-import 'habit_actions.dart';
-import 'habit_days_sheet.dart';
+import 'package:knotes/features/journal/presentation/habit_actions.dart';
+import 'package:knotes/features/journal/presentation/habit_days_sheet.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
 
 class HabitCard extends StatefulWidget {
   final Habit habit;
@@ -78,7 +79,7 @@ class _HabitCardState
         color: bgTint,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(KnotesTheme.radiusMd),
           side: BorderSide(color: borderTint, width: 1.5),
         ),
         child: Padding(
@@ -107,7 +108,9 @@ class _HabitCardState
                             ? const SizedBox.square(
                                 key: ValueKey('busy'),
                                 dimension: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Icon(
                                 done
@@ -140,7 +143,7 @@ class _HabitCardState
                       children: [
                         Text(
                           widget.habit.title,
-                          style: KwallTheme.fontTitle.copyWith(fontSize: 17),
+                          style: KnotesTheme.fontTitle.copyWith(fontSize: 17),
                         ),
                         if (!widget.hideStreak) ...[
                           const SizedBox(height: 4),
@@ -152,9 +155,15 @@ class _HabitCardState
                                 color: habitColor,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                '${widget.habit.streak(widget.day)} días',
-                                style: TextStyle(color: KwallTheme.textSecondary),
+                              Flexible(
+                                child: Text(
+                                  '${widget.habit.streak(widget.day)} días · mejor ${widget.habit.bestStreak}'
+                                  '${widget.habit.reminderTime == null ? '' : ' · ${widget.habit.reminderTime}'}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: KnotesTheme.textSecondary,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -162,87 +171,93 @@ class _HabitCardState
                       ],
                     ),
                   ),
-                PopupMenuButton<String>(
-                  tooltip: 'Opciones de ${widget.habit.title}',
-                  onSelected: (value) async {
-                    if (value == 'days') {
-                      _days();
-                    } else if (value == 'edit') {
-                      if (widget.onEdit != null) {
-                        widget.onEdit!();
+                  PopupMenuButton<String>(
+                    tooltip: 'Opciones de ${widget.habit.title}',
+                    onSelected: (value) async {
+                      if (value == 'days') {
+                        _days();
+                      } else if (value == 'edit') {
+                        if (widget.onEdit != null) {
+                          widget.onEdit!();
+                        } else {
+                          editHabit(context, habit: widget.habit);
+                        }
                       } else {
-                        editHabit(context, habit: widget.habit);
-                      }
-                    } else {
-                      final remove = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('¿Eliminar hábito?'),
-                          content: const Text(
-                            'También se borrarán sus días registrados.',
+                        final remove = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('¿Eliminar hábito?'),
+                            content: const Text(
+                              'También se borrarán sus días registrados.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancelar'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Eliminar'),
+                              ),
+                            ],
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancelar'),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Eliminar'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (remove == true) {
-                        if (!await model.deleteHabit(widget.habit) &&
-                            context.mounted) {
-                          showFailure(
-                            context,
-                            model.error ?? 'No se pudo eliminar el hábito.',
-                          );
+                        );
+                        if (remove == true) {
+                          if (!await model.deleteHabit(widget.habit) &&
+                              context.mounted) {
+                            showFailure(
+                              context,
+                              model.error ?? 'No se pudo eliminar el hábito.',
+                            );
+                          }
                         }
                       }
-                    }
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
-                      value: 'days',
-                      child: Text('Marcar varios días'),
-                    ),
-                    PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-                  ],
-                ),
-              ],
-            ),
-            if (!widget.compact || log?.completed != true)
-              Wrap(
-                spacing: 8,
-                children: [
-                  TextButton.icon(
-                    onPressed: _busy ? null : _missed,
-                    icon: const Icon(
-                      Icons.sentiment_neutral_outlined,
-                      size: 18,
-                    ),
-                    label: const Text('No pude'),
-                  ),
-                  TextButton.icon(
-                    onPressed: _busy ? null : _days,
-                    icon: const Icon(Icons.date_range_outlined, size: 18),
-                    label: const Text('Varios días'),
+                    },
+                    itemBuilder: (_) => [
+                      menuItem(
+                        'days',
+                        Icons.event_available_outlined,
+                        'Marcar varios días',
+                      ),
+                      menuItem('edit', Icons.edit_outlined, 'Editar'),
+                      menuItem(
+                        'delete',
+                        Icons.delete_outline_rounded,
+                        'Eliminar',
+                        danger: true,
+                      ),
+                    ],
                   ),
                 ],
               ),
-            if (log != null && !done)
-              Text(
-                '${moodLabels[log.mood] ?? 'Neutral'}${log.reason.isEmpty ? '' : ' · ${log.reason}'}',
-                style: TextStyle(color: KwallTheme.textSecondary),
-              ),
-          ],
+              if (!widget.compact || log?.completed != true)
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _busy ? null : _missed,
+                      icon: const Icon(
+                        Icons.sentiment_neutral_outlined,
+                        size: 18,
+                      ),
+                      label: const Text('No pude'),
+                    ),
+                    TextButton.icon(
+                      onPressed: _busy ? null : _days,
+                      icon: const Icon(Icons.date_range_outlined, size: 18),
+                      label: const Text('Varios días'),
+                    ),
+                  ],
+                ),
+              if (log != null && !done)
+                Text(
+                  '${moodLabels[log.mood] ?? 'Neutral'}${log.reason.isEmpty ? '' : ' · ${log.reason}'}',
+                  style: TextStyle(color: KnotesTheme.textSecondary),
+                ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 }

@@ -1,11 +1,12 @@
-import '../../../core/contracts/app_repositories.dart';
-import '../models/journal_models.dart';
-import 'journal_actions_view_model.dart';
+import 'package:knotes/core/contracts/app_repositories.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/journal/view_models/journal_actions_view_model.dart';
 
 class JournalViewModel extends JournalActionsViewModel {
   final SettingsRepository preferences;
   List<PersonalNote> notes = const [];
   List<Habit> habits = const [];
+  List<Goal> goals = const [];
   Map<String, String> settings = const {};
   int xp = 0;
   bool loading = true;
@@ -21,9 +22,11 @@ class JournalViewModel extends JournalActionsViewModel {
       final nextHabits = await repository.getHabits();
       final nextSettings = await preferences.getSettings();
       final nextXp = await repository.getExperience();
+      final nextGoals = await repository.getGoals();
       if (!isCurrent(request)) return;
       notes = List.unmodifiable(nextNotes);
       habits = List.unmodifiable(nextHabits);
+      goals = List.unmodifiable(nextGoals);
       settings = Map.unmodifiable(nextSettings);
       xp = nextXp;
       loading = false;

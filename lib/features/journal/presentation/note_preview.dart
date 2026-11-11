@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/journal_actions_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import '../models/journal_models.dart';
-import 'journal_sheets.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/journal/view_models/journal_actions_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/features/journal/presentation/journal_sheets.dart';
 
 class NotePreview extends StatefulWidget {
   final PersonalNote note;
@@ -34,13 +34,13 @@ class _NotePreviewState
   Widget build(BuildContext context) {
     final noteColor = widget.note.colorValue != 0
         ? Color(widget.note.colorValue)
-        : KwallTheme.accent;
+        : KnotesTheme.accent;
     final bgTint = widget.note.colorValue != 0
         ? noteColor.withValues(alpha: 0.08)
-        : KwallTheme.surface;
+        : KnotesTheme.surface;
     final borderTint = widget.note.colorValue != 0
         ? noteColor.withValues(alpha: 0.35)
-        : KwallTheme.border.withValues(alpha: 0.65);
+        : KnotesTheme.border.withValues(alpha: 0.65);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -48,7 +48,7 @@ class _NotePreviewState
         color: bgTint,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(KnotesTheme.radiusMd),
           side: BorderSide(
             color: borderTint,
             width: widget.note.colorValue != 0 ? 1.5 : 1,
@@ -78,44 +78,43 @@ class _NotePreviewState
                   widget.note.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: KwallTheme.fontTitle,
+                  style: KnotesTheme.fontTitle,
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => NoteSheet(note: widget.note),
-                ),
+                onTap: () => openNote(context, note: widget.note),
               ),
-          if (widget.note.body.isNotEmpty)
-            Text(
-              widget.note.body,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          for (var i = 0; i < widget.note.items.length && i < 3; i++)
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              value: widget.note.items[i].done,
-              title: Text(
-                widget.note.items[i].text,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  decoration: widget.note.items[i].done
-                      ? TextDecoration.lineThrough
-                      : null,
+              if (widget.note.body.isNotEmpty)
+                Text(
+                  widget.note.body,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              onChanged: _busy ? null : (value) => _check(i, value!),
-            ),
-          if (widget.note.items.length > 3)
-            Text(
-              '+${widget.note.items.length - 3} en la lista',
-              style: TextStyle(color: KwallTheme.textSecondary, fontSize: 12),
-            ),
-        ],
+              for (var i = 0; i < widget.note.items.length && i < 3; i++)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: widget.note.items[i].done,
+                  title: Text(
+                    widget.note.items[i].text,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      decoration: widget.note.items[i].done
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                  onChanged: _busy ? null : (value) => _check(i, value!),
+                ),
+              if (widget.note.items.length > 3)
+                Text(
+                  '+${widget.note.items.length - 3} en la lista',
+                  style: TextStyle(
+                    color: KnotesTheme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+            ],
           ),
         ),
       ),

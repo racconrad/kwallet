@@ -1,28 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/app_dependencies.dart';
-import '../../../core/mvvm/view_model_state.dart';
-import '../view_models/journal_view_model.dart';
-import '../../../core/theme/kwall_theme.dart';
-import '../../../core/widgets/finance_widgets.dart';
-import 'habit_check_in.dart';
-import 'journal_sheets.dart';
+import 'package:knotes/app/app_dependencies.dart';
+import 'package:knotes/core/mvvm/view_model_state.dart';
+import 'package:knotes/features/journal/view_models/journal_view_model.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
+import 'package:knotes/features/journal/presentation/goals_section.dart';
+import 'package:knotes/features/journal/presentation/habit_check_in.dart';
+import 'package:knotes/features/journal/presentation/journal_sheets.dart';
 
-import '../models/journal_models.dart';
-import '../../../core/widgets/pet_cameo_empty_state.dart';
-import 'widgets/habit_time_block_filter.dart';
+import 'package:knotes/features/journal/models/journal_models.dart';
+import 'package:knotes/core/widgets/pet_cameo_empty_state.dart';
+import 'package:knotes/features/journal/presentation/widgets/habit_time_block_filter.dart';
+import 'package:knotes/features/journal/presentation/widgets/quick_capture_field.dart';
+import 'package:knotes/core/widgets/menu_label.dart';
 
-export 'journal_sheets.dart' show NoteSheet;
+export 'note_screen.dart' show NoteScreen, openNote;
 
 class JournalScreen extends StatefulWidget {
   final int initialTab;
   final VoidCallback? onSettings;
-  const JournalScreen({
-    super.key,
-    this.initialTab = 0,
-    this.onSettings,
-  });
+  const JournalScreen({super.key, this.initialTab = 0, this.onSettings});
   @override
   State<JournalScreen> createState() => _JournalScreenState();
 }
@@ -38,6 +37,29 @@ class _JournalScreenState
   int get _xp => model.xp;
   late int _tab = widget.initialTab;
   String _activeTimeBlock = 'all';
+  final _search = TextEditingController();
+  String _noteFilter = 'all';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<PersonalNote> get _visibleNotes {
+    final query = _search.text.trim().toLowerCase();
+    return [
+      for (final note in _notes)
+        if ((_noteFilter != 'lists' || note.items.isNotEmpty) &&
+            (_noteFilter != 'pending' || note.items.any((i) => !i.done)) &&
+            (query.isEmpty ||
+                note.title.toLowerCase().contains(query) ||
+                note.body.toLowerCase().contains(query) ||
+                note.items.any((i) => i.text.toLowerCase().contains(query))))
+          note,
+    ];
+  }
+
   DateTime? _selectedDay;
   DateTime get _day => _selectedDay ?? DateTime.now();
   void _selectDay(DateTime date) => setState(
@@ -47,11 +69,8 @@ class _JournalScreenState
   bool get _loading => model.loading;
   String? get _error => model.error;
   Future<void> _load() => model.load();
-  void _editNote([PersonalNote? note]) => showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    builder: (_) => NoteSheet(note: note),
-  );
+  void _editNote([PersonalNote? note, bool edit = false]) =>
+      openNote(context, note: note, edit: edit);
   Future<void> _habit([Habit? habit]) => editHabit(context, habit: habit);
 
   @override
@@ -76,7 +95,7 @@ class _JournalScreenState
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
                 children: [
                   SegmentedButton<int>(
-            showSelectedIcon: false,
+                    showSelectedIcon: false,
                     segments: const [
                       ButtonSegment(
                         value: 0,
@@ -101,7 +120,7 @@ class _JournalScreenState
                       Expanded(
                         child: Text(
                           _tab == 0 ? 'Mis notas' : 'Mis hábitos',
-                          style: KwallTheme.fontTitle.copyWith(fontSize: 20),
+                          style: KnotesTheme.fontTitle.copyWith(fontSize: 20),
                         ),
                       ),
                       IconButton.filledTonal(
@@ -120,10 +139,56 @@ class _JournalScreenState
                     ],
                   ),
                   if (_tab == 0) ...[
+                    const SizedBox(height: 8),
+                    const QuickCaptureField(),
+                    if (_notes.length > 3) ...[
+                      const SizedBox(height: 12),
+                      SearchBar(
+                        controller: _search,
+                        hintText: 'Buscar en mis notas',
+                        leading: const Icon(Icons.search_rounded),
+                        elevation: const WidgetStatePropertyAll(0),
+                        onChanged: (_) => setState(() {}),
+                        trailing: [
+                          if (_search.text.isNotEmpty)
+                            IconButton(
+                              tooltip: 'Limpiar',
+                              onPressed: () => setState(_search.clear),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final (key, label) in const [
+                          ('all', 'Todas'),
+                          ('lists', 'Listas'),
+                          ('pending', 'Con pendientes'),
+                        ])
+                          ChoiceChip(
+                            label: Text(label),
+                            selected: _noteFilter == key,
+                            onSelected: (_) =>
+                                setState(() => _noteFilter = key),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     if (_notes.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 30),
                         child: Text('Una idea, una lista, lo que necesites.'),
+                      )
+                    else if (_visibleNotes.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Text(
+                          'Nada coincide con tu búsqueda.',
+                          style: TextStyle(color: KnotesTheme.textSecondary),
+                        ),
                       ),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -132,7 +197,7 @@ class _JournalScreenState
                           spacing: 10,
                           runSpacing: 10,
                           children: [
-                            for (final note in _notes)
+                            for (final note in _visibleNotes)
                               SizedBox(
                                 width: itemWidth,
                                 child: _buildCompactNoteCard(note),
@@ -159,11 +224,15 @@ class _JournalScreenState
                       const SizedBox(height: 12),
                       HabitTimeBlockFilter(
                         activeBlock: _activeTimeBlock,
-                        onChanged: (block) => setState(() => _activeTimeBlock = block),
+                        onChanged: (block) =>
+                            setState(() => _activeTimeBlock = block),
                       ),
                     ],
                     const SizedBox(height: 12),
-                    for (final habit in HabitTimeBlockFilter.filter(_habits, _activeTimeBlock))
+                    for (final habit in HabitTimeBlockFilter.filter(
+                      _habits,
+                      _activeTimeBlock,
+                    ))
                       HabitCard(
                         key: ValueKey(habit.id),
                         habit: habit,
@@ -171,6 +240,12 @@ class _JournalScreenState
                         hideStreak: _settings['disable_streaks'] == 'true',
                         onEdit: () => _habit(habit),
                       ),
+                    const SizedBox(height: 24),
+                    GoalsSection(
+                      goals: model.goals,
+                      habits: _habits,
+                      onMark: model.markGoal,
+                    ),
                   ],
                 ],
               ),
@@ -211,11 +286,13 @@ class _JournalScreenState
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: Material(
                       color: selected
-                          ? KwallTheme.accent
-                          : KwallTheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(14),
+                          ? KnotesTheme.accent
+                          : KnotesTheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(
+                          KnotesTheme.radiusSm,
+                        ),
                         onTap: future ? null : () => _selectDay(day),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -225,8 +302,8 @@ class _JournalScreenState
                                 DateFormat('EE', 'es').format(day),
                                 style: TextStyle(
                                   color: selected
-                                      ? KwallTheme.onAccent
-                                      : KwallTheme.textSecondary,
+                                      ? KnotesTheme.onAccent
+                                      : KnotesTheme.textSecondary,
                                   fontSize: 11,
                                 ),
                               ),
@@ -234,12 +311,12 @@ class _JournalScreenState
                                 '${day.day}',
                                 style: TextStyle(
                                   color: selected
-                                      ? KwallTheme.onAccent
+                                      ? KnotesTheme.onAccent
                                       : future
-                                      ? KwallTheme.textSecondary.withValues(
+                                      ? KnotesTheme.textSecondary.withValues(
                                           alpha: .45,
                                         )
-                                      : KwallTheme.textPrimary,
+                                      : KnotesTheme.textPrimary,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -258,27 +335,28 @@ class _JournalScreenState
   );
 
   Widget _buildCompactNoteCard(PersonalNote note) {
-    final noteColor =
-        note.colorValue != 0 ? Color(note.colorValue) : KwallTheme.accent;
+    final noteColor = note.colorValue != 0
+        ? Color(note.colorValue)
+        : KnotesTheme.accent;
     final bgTint = note.colorValue != 0
         ? noteColor.withValues(alpha: 0.08)
-        : KwallTheme.surface;
+        : KnotesTheme.surface;
     final borderTint = note.colorValue != 0
         ? noteColor.withValues(alpha: 0.35)
-        : KwallTheme.border.withValues(alpha: 0.65);
+        : KnotesTheme.border.withValues(alpha: 0.65);
 
     return Material(
       color: bgTint,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(KnotesTheme.radiusMd),
         side: BorderSide(
           color: borderTint,
           width: note.colorValue != 0 ? 1.5 : 1,
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(KnotesTheme.radiusMd),
         onTap: () => _editNote(note),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -309,7 +387,7 @@ class _JournalScreenState
                     tooltip: 'Acciones',
                     onSelected: (value) async {
                       if (value == 'edit') {
-                        _editNote(note);
+                        _editNote(note, true);
                       } else {
                         final removed = await model.deleteNote(note);
                         if (!mounted) return;
@@ -321,9 +399,14 @@ class _JournalScreenState
                         }
                       }
                     },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Editar')),
-                      PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                    itemBuilder: (_) => [
+                      menuItem('edit', Icons.edit_outlined, 'Editar'),
+                      menuItem(
+                        'delete',
+                        Icons.delete_outline_rounded,
+                        'Eliminar',
+                        danger: true,
+                      ),
                     ],
                   ),
                 ],
@@ -346,12 +429,12 @@ class _JournalScreenState
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    color: KwallTheme.textSecondary,
+                    color: KnotesTheme.textSecondary,
                     height: 1.3,
                   ),
                 ),
               ],
-              if (note.kind == 'list' && note.items.isNotEmpty) ...[
+              if (note.items.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -366,7 +449,7 @@ class _JournalScreenState
                         '${note.items.where((i) => i.done).length}/${note.items.length} hechas',
                         style: TextStyle(
                           fontSize: 11,
-                          color: KwallTheme.textSecondary,
+                          color: KnotesTheme.textSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -380,7 +463,7 @@ class _JournalScreenState
                 DateFormat('d MMM', 'es').format(note.updatedAt),
                 style: TextStyle(
                   fontSize: 10,
-                  color: KwallTheme.textSecondary.withValues(alpha: 0.7),
+                  color: KnotesTheme.textSecondary.withValues(alpha: 0.7),
                 ),
               ),
             ],
