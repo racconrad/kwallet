@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../features/bodega/models/category_model.dart';
+import 'package:knotes/features/bodega/models/category_model.dart';
 
 extension CategoryVisuals on CategoryModel {
   IconData get iconData {

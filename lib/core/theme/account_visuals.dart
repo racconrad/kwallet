@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'kwall_theme.dart';
-import '../../features/bodega/models/account.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/features/bodega/models/account.dart';
 
 const accountIcons = <String, (IconData, String)>{
   'wallet': (Icons.wallet_outlined, 'Billetera'),
@@ -19,7 +19,7 @@ extension AccountVisuals on Account {
     final hsl = HSLColor.fromColor(Color(colorValue));
     return hsl
         .withLightness(
-          KwallTheme.isDark
+          KnotesTheme.isDark
               ? hsl.lightness.clamp(.65, .82)
               : hsl.lightness.clamp(.24, .38),
         )

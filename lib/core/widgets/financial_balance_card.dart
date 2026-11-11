@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/kwall_theme.dart';
-import 'finance_widgets.dart';
+import 'package:knotes/core/theme/knotes_theme.dart';
+import 'package:knotes/core/widgets/finance_widgets.dart';
 
 /// Unified financial balance and liquidity card used across Home and Finances screens.
 class FinancialBalanceCard extends StatelessWidget {
@@ -26,7 +26,10 @@ class FinancialBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ink = KnotesTheme.onAccent;
+    final wash = ink.withValues(alpha: .14);
     return LedgerPanel(
+      color: KnotesTheme.accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -34,13 +37,10 @@ class FinancialBalanceCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: KwallTheme.accentLight,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: wash, shape: BoxShape.circle),
                 child: Icon(
                   Icons.account_balance_wallet_outlined,
-                  color: KwallTheme.accent,
+                  color: ink,
                   size: 16,
                 ),
               ),
@@ -50,8 +50,8 @@ class FinancialBalanceCard extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: KwallTheme.textSecondary,
+                    fontWeight: FontWeight.w700,
+                    color: ink.withValues(alpha: .85),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -73,16 +73,12 @@ class FinancialBalanceCard extends StatelessWidget {
                           actionLabel!,
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: KwallTheme.accent,
+                            fontWeight: FontWeight.w800,
+                            color: ink,
                           ),
                         ),
                         const SizedBox(width: 2),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          size: 14,
-                          color: KwallTheme.accent,
-                        ),
+                        Icon(Icons.chevron_right_rounded, size: 14, color: ink),
                       ],
                     ),
                   ),
@@ -94,8 +90,8 @@ class FinancialBalanceCard extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              KwallTheme.formatCurrency(balance, currency),
-              style: KwallTheme.fontDisplay.copyWith(fontSize: 34),
+              KnotesTheme.formatCurrency(balance, currency),
+              style: KnotesTheme.fontDisplay.copyWith(fontSize: 40, color: ink),
             ),
           ),
           if (cashByCurrency.length > 1) ...[
@@ -111,18 +107,15 @@ class FinancialBalanceCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: KwallTheme.surfaceContainer.withValues(alpha: 0.6),
+                      color: wash,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: KwallTheme.border.withValues(alpha: 0.2),
-                      ),
                     ),
                     child: Text(
-                      '${entry.key}: ${KwallTheme.formatCurrency(entry.value, entry.key)}',
+                      '${entry.key}: ${KnotesTheme.formatCurrency(entry.value, entry.key)}',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: KwallTheme.textSecondary,
+                        color: ink,
                       ),
                     ),
                   ),
@@ -133,26 +126,23 @@ class FinancialBalanceCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: KwallTheme.surfaceContainer.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(10),
+              color: wash,
+              borderRadius: BorderRadius.circular(KnotesTheme.radiusSm),
             ),
             child: Row(
               children: [
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: KwallTheme.incomeGreen,
-                  ),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: ink),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Libre disponible: ${KwallTheme.formatCurrency(available, currency)}',
+                    'Libre disponible: ${KnotesTheme.formatCurrency(available, currency)}',
                     style: TextStyle(
-                      color: KwallTheme.accent,
-                      fontWeight: FontWeight.w700,
+                      color: ink,
+                      fontWeight: FontWeight.w800,
                       fontSize: 13,
                     ),
                     maxLines: 1,
